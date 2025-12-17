@@ -1,0 +1,43 @@
+{
+  "name": "fwd.rs",
+  "private": true,
+  "type": "module",
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "dotenv": "^17.2.2",
+      "zod": "^4.1.13",
+      "better-auth": "^1.4.7"
+    }
+  },
+  "scripts": {
+    "check": "biome check --write .",
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:native": "turbo -F native dev",
+    "dev:web": "turbo -F web dev",
+    "db:push": "turbo -F @fwd.rs/db db:push",
+    "db:studio": "turbo -F @fwd.rs/db db:studio",
+    "db:generate": "turbo -F @fwd.rs/db db:generate",
+    "db:migrate": "turbo -F @fwd.rs/db db:migrate",
+    "db:start": "turbo -F @fwd.rs/db db:start",
+    "db:watch": "turbo -F @fwd.rs/db db:watch",
+    "db:stop": "turbo -F @fwd.rs/db db:stop",
+    "db:down": "turbo -F @fwd.rs/db db:down"
+  },
+  "dependencies": {
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "turbo": "^2.6.3",
+    "@biomejs/biome": "^2.2.0",
+    "typescript": "^5",
+    "@types/node": "^22.13.11"
+  },
+  "packageManager": "bun@1.3.4"
+}
