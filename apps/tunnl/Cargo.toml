@@ -26,6 +26,12 @@ async-trait = "0.1"
 rand = "0.8"
 rand_core = "0.6"
 
+# HTTP server for proxy layer
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
+
 [dev-dependencies]
 # Testing
 tokio-test = "0.4"
