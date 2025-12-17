@@ -10,7 +10,7 @@
 //! RUST_LOG=info cargo run
 //!
 //! # Connect SSH tunnel (in another terminal)
-//! ssh -o StrictHostKeyChecking=no -R 80:localhost:3000 -p 2222 test@localhost
+//! ssh -o StrictHostKeyChecking=no -N -R 80:localhost:3000 -p 2222 test@localhost
 //!
 //! # Access via HTTP proxy (server prints the subdomain)
 //! curl -H "Host: tunnel-xxx.localhost" http://localhost:8080/
@@ -645,7 +645,7 @@ async fn main() -> anyhow::Result<()> {
     info!("HTTP proxy:   {}", http_addr);
     info!("═══════════════════════════════════════════════════════════════");
     info!("To create a tunnel:");
-    info!("  ssh -o StrictHostKeyChecking=no -R 80:localhost:3000 -p 2222 user@localhost");
+    info!("  ssh -o StrictHostKeyChecking=no -N -R 80:localhost:3000 -p 2222 test@localhost");
     info!("");
     info!("Then access via HTTP:");
     info!("  curl -H \"Host: tunnel-xxx.localhost\" http://localhost:8080/");
