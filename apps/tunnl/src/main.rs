@@ -564,17 +564,42 @@ async fn run_http_proxy(state: Arc<AppState>, addr: &str) -> anyhow::Result<()> 
 }
 
 // =============================================================================
-// Server Key Generation
+// Server Key Management
 // =============================================================================
 
-fn generate_server_key() -> anyhow::Result<russh_keys::PrivateKey> {
+/// Path to store the server key
+const SERVER_KEY_PATH: &str = "server_key.pem";
+
+/// Load server key from file, or generate a new one and save it.
+/// This ensures the server key persists across restarts, avoiding
+/// "host key changed" warnings for SSH clients.
+fn load_or_generate_server_key() -> anyhow::Result<russh_keys::PrivateKey> {
     use russh_keys::Algorithm;
+    use std::fs;
+    use std::path::Path;
     
-    info!("Generating new Ed25519 server key...");
-    let key = russh_keys::PrivateKey::random(&mut rand::thread_rng(), Algorithm::Ed25519)?;
+    let key_path = Path::new(SERVER_KEY_PATH);
     
-    info!("Server key fingerprint: {}", key.public_key().fingerprint(HashAlg::Sha256));
-    Ok(key)
+    if key_path.exists() {
+        // Load existing key
+        info!("Loading server key from {}...", SERVER_KEY_PATH);
+        let key_data = fs::read_to_string(key_path)?;
+        let key = russh_keys::PrivateKey::from_openssh(&key_data)?;
+        info!("Server key fingerprint: {}", key.public_key().fingerprint(HashAlg::Sha256));
+        Ok(key)
+    } else {
+        // Generate new key and save it
+        info!("Generating new Ed25519 server key...");
+        let key = russh_keys::PrivateKey::random(&mut rand::thread_rng(), Algorithm::Ed25519)?;
+        
+        // Save to file
+        let key_data = key.to_openssh(russh_keys::ssh_key::LineEnding::LF)?;
+        fs::write(key_path, key_data.as_bytes())?;
+        info!("Server key saved to {}", SERVER_KEY_PATH);
+        info!("Server key fingerprint: {}", key.public_key().fingerprint(HashAlg::Sha256));
+        
+        Ok(key)
+    }
 }
 
 // =============================================================================
@@ -594,7 +619,7 @@ async fn main() -> anyhow::Result<()> {
     info!("✓ Application state initialized");
 
     // Generate server key
-    let key = generate_server_key()?;
+    let key = load_or_generate_server_key()?;
 
     // Configure SSH server
     let config = russh::server::Config {
