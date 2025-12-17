@@ -22,6 +22,8 @@ pub struct SshHandler {
     session_handle: Option<Handle>,
     registered_subdomains: Vec<String>,
     subdomain_counter: u32,
+    /// Track the main session channel ID to only cleanup on session close
+    session_channel_id: Option<ChannelId>,
 }
 
 impl SshHandler {
@@ -33,6 +35,7 @@ impl SshHandler {
             session_handle: None,
             registered_subdomains: Vec::new(),
             subdomain_counter: 0,
+            session_channel_id: None,
         }
     }
 
@@ -40,6 +43,17 @@ impl SshHandler {
         self.subdomain_counter += 1;
         let random_part: u32 = rand_simple();
         format!("tunnel-{:06x}-{}", random_part, self.subdomain_counter)
+    }
+
+    /// Cleanup all tunnels registered by this connection
+    async fn cleanup_tunnels(&mut self) {
+        for subdomain in &self.registered_subdomains {
+            match self.state.remove_tunnel(subdomain).await {
+                Ok(_) => info!("Removed tunnel: {}", subdomain),
+                Err(e) => warn!("Failed to remove tunnel {}: {}", subdomain, e),
+            }
+        }
+        self.registered_subdomains.clear();
     }
 }
 
@@ -66,15 +80,14 @@ impl Handler for SshHandler {
         channel: ChannelId,
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
-        info!("Channel {:?} closed, cleaning up tunnels...", channel);
-        
-        for subdomain in &self.registered_subdomains {
-            match self.state.remove_tunnel(subdomain).await {
-                Ok(_) => info!("Removed tunnel: {}", subdomain),
-                Err(e) => warn!("Failed to remove tunnel {}: {}", subdomain, e),
-            }
+        // Only cleanup tunnels when the MAIN session channel closes
+        // Not when forwarded TCP channels close (those are per-request)
+        if self.session_channel_id == Some(channel) {
+            info!("Session channel {:?} closed, cleaning up tunnels...", channel);
+            self.cleanup_tunnels().await;
+        } else {
+            debug!("Forwarded channel {:?} closed (not cleaning up tunnels)", channel);
         }
-        self.registered_subdomains.clear();
         
         Ok(())
     }
@@ -180,7 +193,10 @@ impl Handler for SshHandler {
         channel: Channel<Msg>,
         _session: &mut Session,
     ) -> Result<bool, Self::Error> {
-        info!("Session channel opened: id={:?}", channel.id());
+        let channel_id = channel.id();
+        info!("Session channel opened: id={:?}", channel_id);
+        // Store this as the main session channel
+        self.session_channel_id = Some(channel_id);
         Ok(true)
     }
 
