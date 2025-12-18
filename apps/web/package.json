@@ -30,7 +30,8 @@
     "better-auth": "catalog:",
     "dotenv": "catalog:",
     "zod": "catalog:",
-    "@fwd.rs/auth": "workspace:*"
+    "@fwd.rs/auth": "workspace:*",
+    "@fwd.rs/db": "workspace:*"
   },
   "devDependencies": {
     "@tanstack/react-router-devtools": "^1.141.1",

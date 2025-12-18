@@ -7,18 +7,22 @@ use log::{error, info};
 use russh::server::{Handler, Server};
 
 use super::SshHandler;
-use crate::error::TunnelError;
+use crate::device::DeviceFlowClient;
 use crate::state::AppState;
 
 /// The main SSH server that creates handlers for each connection.
 #[derive(Clone)]
 pub struct TunnelServer {
     state: Arc<AppState>,
+    device_flow_client: Arc<DeviceFlowClient>,
 }
 
 impl TunnelServer {
-    pub fn new(state: Arc<AppState>) -> Self {
-        Self { state }
+    pub fn new(state: Arc<AppState>, device_flow_client: Arc<DeviceFlowClient>) -> Self {
+        Self {
+            state,
+            device_flow_client,
+        }
     }
 }
 
@@ -27,7 +31,11 @@ impl Server for TunnelServer {
 
     fn new_client(&mut self, peer_addr: Option<SocketAddr>) -> Self::Handler {
         info!("New SSH connection from {:?}", peer_addr);
-        SshHandler::new(self.state.clone(), peer_addr)
+        SshHandler::new(
+            self.state.clone(),
+            self.device_flow_client.clone(),
+            peer_addr,
+        )
     }
 
     fn handle_session_error(&mut self, error: <Self::Handler as Handler>::Error) {
