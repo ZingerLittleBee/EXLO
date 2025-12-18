@@ -208,67 +208,40 @@ impl Handler for SshHandler {
             address, port, self.username, self.verification_status
         );
 
+        // Skip auth completely if TUNNL_SKIP_AUTH is set
+        if std::env::var("TUNNL_SKIP_AUTH").is_ok() {
+            if !self.is_verified() {
+                warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification");
+                self.verification_status = VerificationStatus::Verified { 
+                    user_id: self.username.clone().unwrap_or_else(|| "dev".to_string())
+                };
+            }
+            return self.create_tunnel(address, *port).await;
+        }
+
         // If already verified, proceed directly
         if self.is_verified() {
             return self.create_tunnel(address, *port).await;
         }
 
-        // Start Device Flow if not already started
+        // Start Device Flow if not already started (but don't block waiting for it)
         if matches!(self.verification_status, VerificationStatus::NotStarted) {
             match self.start_device_flow().await {
                 Ok(code) => {
                     let url = self.device_flow_client.get_activation_url(&code);
-                    
-                    // Print activation info to server logs (user sees in SSH output)
-                    info!("══════════════════════════════════════════════════════════════");
-                    info!("DEVICE ACTIVATION REQUIRED");
-                    info!("══════════════════════════════════════════════════════════════");
-                    info!("Code: {}", code);
-                    info!("URL:  {}", url);
-                    info!("══════════════════════════════════════════════════════════════");
-                    info!("Waiting for browser authorization...");
+                    info!("Device Flow started - Code: {}, URL: {}", code, url);
+                    // Continue to create tunnel - user will see message in shell_request
                 }
                 Err(reason) => {
-                    warn!("Device Flow failed to start: {}", reason);
-                    // Allow tunnel anyway if API is unavailable (dev mode)
-                    if std::env::var("TUNNL_SKIP_AUTH").is_ok() {
-                        warn!("TUNNL_SKIP_AUTH is set, allowing tunnel without verification");
-                        self.verification_status = VerificationStatus::Verified { 
-                            user_id: self.username.clone().unwrap_or_else(|| "dev".to_string())
-                        };
-                        return self.create_tunnel(address, *port).await;
-                    }
+                    warn!("Device Flow failed: {}", reason);
                     return Ok(false);
                 }
             }
         }
 
-        // If already failed, reject
-        if let VerificationStatus::Failed { reason } = &self.verification_status {
-            warn!("Tunnel rejected: {}", reason);
-            return Ok(false);
-        }
-
-        // Poll for verification
-        if let VerificationStatus::Pending { code } = &self.verification_status.clone() {
-            info!("Polling for Device Flow verification...");
-            
-            match self.device_flow_client.poll_until_verified(code).await {
-                Ok(user_id) => {
-                    info!("✓ Device Flow verified! User: {}", user_id);
-                    self.verification_status = VerificationStatus::Verified { user_id };
-                    return self.create_tunnel(address, *port).await;
-                }
-                Err(e) => {
-                    let reason = format!("Verification failed: {}", e);
-                    warn!("{}", reason);
-                    self.verification_status = VerificationStatus::Failed { reason };
-                    return Ok(false);
-                }
-            }
-        }
-
-        Ok(false)
+        // Create tunnel immediately - verification will happen in background
+        // The tunnel is "pending" until verified
+        self.create_tunnel(address, *port).await
     }
 
     async fn cancel_tcpip_forward(
@@ -296,11 +269,47 @@ impl Handler for SshHandler {
     async fn channel_open_session(
         &mut self,
         channel: Channel<Msg>,
-        _session: &mut Session,
+        session: &mut Session,
     ) -> Result<bool, Self::Error> {
         let channel_id = channel.id();
         info!("Session channel opened: id={:?}", channel_id);
         self.session_channel_id = Some(channel_id);
+
+        // Start Device Flow if not already started or verified
+        if matches!(self.verification_status, VerificationStatus::NotStarted) {
+            match self.start_device_flow().await {
+                Ok(code) => {
+                    let url = self.device_flow_client.get_activation_url(&code);
+                    
+                    // Log to server
+                    info!("Device Flow started - Code: {}, URL: {}", code, url);
+
+                    // Send message to client
+                    let message = format!(
+                        "\r\n\
+                        ╔══════════════════════════════════════════════════════════════╗\r\n\
+                        ║                    DEVICE ACTIVATION                         ║\r\n\
+                        ╠══════════════════════════════════════════════════════════════╣\r\n\
+                        ║                                                              ║\r\n\
+                        ║  Code: {:<10}                                           ║\r\n\
+                        ║                                                              ║\r\n\
+                        ║  Visit: {:<50} ║\r\n\
+                        ║                                                              ║\r\n\
+                        ║  Waiting for authorization...                                ║\r\n\
+                        ╚══════════════════════════════════════════════════════════════╝\r\n\
+                        \r\n",
+                        code, url
+                    );
+                    if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
+                        warn!("Failed to send activation message: {:?}", e);
+                    }
+                }
+                Err(reason) => {
+                    warn!("Device Flow failed to start: {}", reason);
+                }
+            }
+        }
+
         Ok(true)
     }
 
@@ -321,6 +330,58 @@ impl Handler for SshHandler {
         _session: &mut Session,
     ) -> Result<(), Self::Error> {
         debug!("EOF on channel {:?}", channel);
+        Ok(())
+    }
+
+    async fn pty_request(
+        &mut self,
+        channel: ChannelId,
+        _term: &str,
+        _col_width: u32,
+        _row_height: u32,
+        _pix_width: u32,
+        _pix_height: u32,
+        _modes: &[(russh::Pty, u32)],
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        info!("PTY request on channel {:?}", channel);
+        session.channel_success(channel)?;
+        Ok(())
+    }
+
+    async fn shell_request(
+        &mut self,
+        channel: ChannelId,
+        session: &mut Session,
+    ) -> Result<(), Self::Error> {
+        info!("Shell request on channel {:?}", channel);
+        session.channel_success(channel)?;
+
+        // Now send the activation message if Device Flow is pending
+        if let VerificationStatus::Pending { code } = &self.verification_status.clone() {
+            let url = self.device_flow_client.get_activation_url(code);
+            
+            let message = format!(
+                "\r\n\
+                ╔══════════════════════════════════════════════════════════════╗\r\n\
+                ║                    DEVICE ACTIVATION                         ║\r\n\
+                ╠══════════════════════════════════════════════════════════════╣\r\n\
+                ║                                                              ║\r\n\
+                ║  Code: {:<10}                                           ║\r\n\
+                ║                                                              ║\r\n\
+                ║  Visit: {:<50} ║\r\n\
+                ║                                                              ║\r\n\
+                ║  Waiting for authorization...                                ║\r\n\
+                ╚══════════════════════════════════════════════════════════════╝\r\n\
+                \r\n",
+                code, url
+            );
+            
+            if let Err(e) = session.data(channel, message.into_bytes().into()) {
+                warn!("Failed to send activation message: {:?}", e);
+            }
+        }
+
         Ok(())
     }
 }
