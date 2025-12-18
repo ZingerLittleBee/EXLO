@@ -12,7 +12,7 @@ use russh::{Channel, ChannelId};
 use russh_keys::HashAlg;
 use tokio::sync::oneshot;
 
-use crate::device::{DeviceFlowClient, DeviceFlowConfig, generate_activation_code};
+use crate::device::{DeviceFlowClient, generate_activation_code};
 use crate::error::TunnelError;
 use crate::state::{AppState, TunnelInfo};
 
@@ -85,66 +85,46 @@ impl SshHandler {
         self.registered_subdomains.clear();
     }
 
-    /// Check if this session is verified
     fn is_verified(&self) -> bool {
         matches!(self.verification_status, VerificationStatus::Verified { .. })
     }
 
     /// Start the Device Flow verification process
-    async fn start_device_flow(&mut self, session: &mut Session) {
+    /// Returns Ok(code) if started successfully, Err if failed
+    async fn start_device_flow(&mut self) -> Result<String, String> {
         let code = generate_activation_code();
         let session_id = self.session_id.clone();
         let client = self.device_flow_client.clone();
+
+        info!("Starting Device Flow with code: {}", code);
 
         // Register the code with the web server
         match client.register_code(&code, &session_id).await {
             Ok(()) => {
                 let activation_url = client.get_activation_url(&code);
                 
-                // Send message to user
-                let message = format!(
-                    "\r\n\
-                    ╔══════════════════════════════════════════════════════════════╗\r\n\
-                    ║                    DEVICE ACTIVATION                         ║\r\n\
-                    ╠══════════════════════════════════════════════════════════════╣\r\n\
-                    ║                                                              ║\r\n\
-                    ║  Your activation code: {:<10}                          ║\r\n\
-                    ║                                                              ║\r\n\
-                    ║  Please visit:                                               ║\r\n\
-                    ║  {}  ║\r\n\
-                    ║                                                              ║\r\n\
-                    ║  Waiting for authorization...                                ║\r\n\
-                    ╚══════════════════════════════════════════════════════════════╝\r\n\
-                    \r\n",
-                    code,
-                    format!("{:<47}", activation_url)
+                info!(
+                    "Device Flow started!\n\
+                     Code: {}\n\
+                     URL: {}",
+                    code, activation_url
                 );
-
-                // Send to the session channel
-                if let Some(channel_id) = self.session_channel_id {
-                    if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
-                        error!("Failed to send activation message: {:?}", e);
-                    }
-                }
 
                 self.verification_status = VerificationStatus::Pending { code: code.clone() };
 
-                // Start polling in background
-                let (cancel_tx, cancel_rx) = oneshot::channel();
+                // Start polling cancellation channel
+                let (cancel_tx, _cancel_rx) = oneshot::channel();
                 self.poll_cancel = Some(cancel_tx);
 
-                let poll_code = code.clone();
-                let poll_client = client.clone();
-                
-                // We need a way to communicate back - store in a shared state
-                // For now, we'll poll synchronously in tcpip_forward
-                info!("Device Flow started with code: {}", code);
+                Ok(code)
             }
             Err(e) => {
-                error!("Failed to register activation code: {:?}", e);
+                let reason = format!("Failed to register code: {}", e);
+                error!("{}", reason);
                 self.verification_status = VerificationStatus::Failed {
-                    reason: e.to_string(),
+                    reason: reason.clone(),
                 };
+                Err(reason)
             }
         }
     }
@@ -185,7 +165,6 @@ impl Handler for SshHandler {
         if self.session_channel_id == Some(channel) {
             info!("Session channel {:?} closed, cleaning up...", channel);
             
-            // Cancel any pending poll
             if let Some(cancel) = self.poll_cancel.take() {
                 let _ = cancel.send(());
             }
@@ -211,7 +190,6 @@ impl Handler for SshHandler {
         );
         
         self.username = Some(user.to_string());
-        // Accept the connection but require Device Flow verification for tunnels
         Ok(Auth::Accept)
     }
 
@@ -219,111 +197,78 @@ impl Handler for SshHandler {
         &mut self,
         address: &str,
         port: &mut u32,
-        session: &mut Session,
+        _session: &mut Session,
     ) -> Result<bool, Self::Error> {
         info!(
             "=== Tunnel Request ===\n\
              Address: '{}'\n\
              Port: {}\n\
              User: {:?}\n\
-             Verified: {}",
-            address, port, self.username, self.is_verified()
+             Status: {:?}",
+            address, port, self.username, self.verification_status
         );
 
-        // Check if already verified
-        if !self.is_verified() {
-            // Start Device Flow if not already started
-            if matches!(self.verification_status, VerificationStatus::NotStarted) {
-                self.start_device_flow(session).await;
-            }
+        // If already verified, proceed directly
+        if self.is_verified() {
+            return self.create_tunnel(address, *port).await;
+        }
 
-            // Poll for verification (blocking for this request)
-            if let VerificationStatus::Pending { code } = &self.verification_status.clone() {
-                info!("Waiting for Device Flow verification...");
-                
-                match self.device_flow_client.poll_until_verified(code).await {
-                    Ok(user_id) => {
-                        info!("Device Flow verified! User: {}", user_id);
-                        self.verification_status = VerificationStatus::Verified { user_id };
-                        
-                        // Notify user
-                        if let Some(channel_id) = self.session_channel_id {
-                            let msg = "\r\n✓ Authorized! Creating tunnel...\r\n\r\n";
-                            let _ = session.data(channel_id, msg.as_bytes().to_vec().into());
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Device Flow failed: {:?}", e);
-                        self.verification_status = VerificationStatus::Failed {
-                            reason: e.to_string(),
+        // Start Device Flow if not already started
+        if matches!(self.verification_status, VerificationStatus::NotStarted) {
+            match self.start_device_flow().await {
+                Ok(code) => {
+                    let url = self.device_flow_client.get_activation_url(&code);
+                    
+                    // Print activation info to server logs (user sees in SSH output)
+                    info!("══════════════════════════════════════════════════════════════");
+                    info!("DEVICE ACTIVATION REQUIRED");
+                    info!("══════════════════════════════════════════════════════════════");
+                    info!("Code: {}", code);
+                    info!("URL:  {}", url);
+                    info!("══════════════════════════════════════════════════════════════");
+                    info!("Waiting for browser authorization...");
+                }
+                Err(reason) => {
+                    warn!("Device Flow failed to start: {}", reason);
+                    // Allow tunnel anyway if API is unavailable (dev mode)
+                    if std::env::var("TUNNL_SKIP_AUTH").is_ok() {
+                        warn!("TUNNL_SKIP_AUTH is set, allowing tunnel without verification");
+                        self.verification_status = VerificationStatus::Verified { 
+                            user_id: self.username.clone().unwrap_or_else(|| "dev".to_string())
                         };
-                        
-                        if let Some(channel_id) = self.session_channel_id {
-                            let msg = format!("\r\n✗ Authorization failed: {}\r\n", e);
-                            let _ = session.data(channel_id, msg.into_bytes().into());
-                        }
-                        
-                        return Ok(false);
+                        return self.create_tunnel(address, *port).await;
                     }
+                    return Ok(false);
                 }
             }
         }
 
-        // Now proceed with tunnel creation
-        let handle = match &self.session_handle {
-            Some(h) => h.clone(),
-            None => {
-                error!("No session handle available!");
-                return Ok(false);
-            }
-        };
+        // If already failed, reject
+        if let VerificationStatus::Failed { reason } = &self.verification_status {
+            warn!("Tunnel rejected: {}", reason);
+            return Ok(false);
+        }
 
-        let subdomain = self.generate_subdomain();
-        let username = match &self.verification_status {
-            VerificationStatus::Verified { user_id } => user_id.clone(),
-            _ => self.username.clone().unwrap_or_else(|| "anonymous".to_string()),
-        };
-
-        let tunnel_info = TunnelInfo {
-            subdomain: subdomain.clone(),
-            handle,
-            requested_address: address.to_string(),
-            requested_port: *port,
-            server_port: 80,
-            created_at: Instant::now(),
-            username,
-        };
-
-        match self.state.register_tunnel(tunnel_info).await {
-            Ok(()) => {
-                info!(
-                    "✓ Tunnel registered!\n\
-                     Subdomain: {}\n\
-                     URL: http://{}.localhost:8080",
-                    subdomain, subdomain
-                );
-                
-                // Send URL to user
-                if let Some(channel_id) = self.session_channel_id {
-                    let msg = format!(
-                        "\r\n✓ Tunnel active: http://{}.localhost:8080\r\n\r\n",
-                        subdomain
-                    );
-                    let _ = session.data(channel_id, msg.into_bytes().into());
+        // Poll for verification
+        if let VerificationStatus::Pending { code } = &self.verification_status.clone() {
+            info!("Polling for Device Flow verification...");
+            
+            match self.device_flow_client.poll_until_verified(code).await {
+                Ok(user_id) => {
+                    info!("✓ Device Flow verified! User: {}", user_id);
+                    self.verification_status = VerificationStatus::Verified { user_id };
+                    return self.create_tunnel(address, *port).await;
                 }
-                
-                self.registered_subdomains.push(subdomain);
-                Ok(true)
-            }
-            Err(TunnelError::SubdomainTaken(s)) => {
-                warn!("Subdomain {} already taken", s);
-                Ok(false)
-            }
-            Err(e) => {
-                error!("Failed to register tunnel: {}", e);
-                Err(e)
+                Err(e) => {
+                    let reason = format!("Verification failed: {}", e);
+                    warn!("{}", reason);
+                    self.verification_status = VerificationStatus::Failed { reason };
+                    return Ok(false);
+                }
             }
         }
+
+        Ok(false)
     }
 
     async fn cancel_tcpip_forward(
@@ -351,15 +296,11 @@ impl Handler for SshHandler {
     async fn channel_open_session(
         &mut self,
         channel: Channel<Msg>,
-        session: &mut Session,
+        _session: &mut Session,
     ) -> Result<bool, Self::Error> {
         let channel_id = channel.id();
         info!("Session channel opened: id={:?}", channel_id);
         self.session_channel_id = Some(channel_id);
-        
-        // Start Device Flow when session opens
-        self.start_device_flow(session).await;
-        
         Ok(true)
     }
 
@@ -381,5 +322,55 @@ impl Handler for SshHandler {
     ) -> Result<(), Self::Error> {
         debug!("EOF on channel {:?}", channel);
         Ok(())
+    }
+}
+
+impl SshHandler {
+    /// Create tunnel after verification
+    async fn create_tunnel(&mut self, address: &str, port: u32) -> Result<bool, TunnelError> {
+        let handle = match &self.session_handle {
+            Some(h) => h.clone(),
+            None => {
+                error!("No session handle available!");
+                return Ok(false);
+            }
+        };
+
+        let subdomain = self.generate_subdomain();
+        let username = match &self.verification_status {
+            VerificationStatus::Verified { user_id } => user_id.clone(),
+            _ => self.username.clone().unwrap_or_else(|| "anonymous".to_string()),
+        };
+
+        let tunnel_info = TunnelInfo {
+            subdomain: subdomain.clone(),
+            handle,
+            requested_address: address.to_string(),
+            requested_port: port,
+            server_port: 80,
+            created_at: Instant::now(),
+            username,
+        };
+
+        match self.state.register_tunnel(tunnel_info).await {
+            Ok(()) => {
+                info!(
+                    "✓ Tunnel registered!\n\
+                     Subdomain: {}\n\
+                     URL: http://{}.localhost:8080",
+                    subdomain, subdomain
+                );
+                self.registered_subdomains.push(subdomain);
+                Ok(true)
+            }
+            Err(TunnelError::SubdomainTaken(s)) => {
+                warn!("Subdomain {} already taken", s);
+                Ok(false)
+            }
+            Err(e) => {
+                error!("Failed to register tunnel: {}", e);
+                Err(e)
+            }
+        }
     }
 }

@@ -1,48 +1,64 @@
-import { db } from "@fwd.rs/db";
-import { activationCodes } from "@fwd.rs/db/schema";
-import { createAPIFileRoute, json } from "@tanstack/react-start/api";
-import { eq } from "drizzle-orm";
+import { db, eq } from "@fwd.rs/db";
+import { activationCodes } from "@fwd.rs/db/schema/index";
+import { createFileRoute } from "@tanstack/react-router";
 
-// Internal API secret for Rust server communication
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || "dev-secret";
 
-export const APIRoute = createAPIFileRoute("/api/internal/check-code")({
-	GET: async ({ request }) => {
-		// Validate internal secret
-		const secret = request.headers.get("X-Internal-Secret");
-		if (secret !== INTERNAL_SECRET) {
-			return json({ error: "Unauthorized" }, { status: 401 });
-		}
+export const Route = createFileRoute("/api/internal/check-code")({
+	server: {
+		handlers: {
+			GET: async ({ request }) => {
+				const secret = request.headers.get("X-Internal-Secret");
+				if (secret !== INTERNAL_SECRET) {
+					return new Response(JSON.stringify({ error: "Unauthorized" }), {
+						status: 401,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
 
-		const url = new URL(request.url);
-		const code = url.searchParams.get("code");
+				const url = new URL(request.url);
+				const code = url.searchParams.get("code");
 
-		if (!code) {
-			return json({ error: "Missing code parameter" }, { status: 400 });
-		}
+				if (!code) {
+					return new Response(JSON.stringify({ error: "Missing code parameter" }), {
+						status: 400,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
 
-		try {
-			const result = await db.query.activationCodes.findFirst({
-				where: eq(activationCodes.code, code),
-			});
+				try {
+					const result = await db.query.activationCodes.findFirst({
+						where: eq(activationCodes.code, code),
+					});
 
-			if (!result) {
-				return json({ status: "not_found" }, { status: 404 });
-			}
+					if (!result) {
+						return new Response(JSON.stringify({ status: "not_found" }), {
+							status: 404,
+							headers: { "Content-Type": "application/json" },
+						});
+					}
 
-			// Check if expired
-			if (new Date() > result.expiresAt) {
-				return json({ status: "expired" });
-			}
+					if (new Date() > result.expiresAt) {
+						return new Response(JSON.stringify({ status: "expired" }), {
+							headers: { "Content-Type": "application/json" },
+						});
+					}
 
-			return json({
-				status: result.status,
-				userId: result.userId,
-				sessionId: result.sessionId,
-			});
-		} catch (error) {
-			console.error("Failed to check code:", error);
-			return json({ error: "Failed to check code" }, { status: 500 });
-		}
+					return new Response(JSON.stringify({
+						status: result.status,
+						userId: result.userId,
+						sessionId: result.sessionId,
+					}), {
+						headers: { "Content-Type": "application/json" },
+					});
+				} catch (error) {
+					console.error("Failed to check code:", error);
+					return new Response(JSON.stringify({ error: "Failed to check code" }), {
+						status: 500,
+						headers: { "Content-Type": "application/json" },
+					});
+				}
+			},
+		},
 	},
 });

@@ -13,6 +13,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ActivateRouteImport } from './routes/activate'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiInternalGenerateCodeRouteImport } from './routes/api/internal/generate-code'
+import { Route as ApiInternalCheckCodeRouteImport } from './routes/api/internal/check-code'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const LoginRoute = LoginRouteImport.update({
@@ -35,6 +37,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiInternalGenerateCodeRoute = ApiInternalGenerateCodeRouteImport.update({
+  id: '/api/internal/generate-code',
+  path: '/api/internal/generate-code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiInternalCheckCodeRoute = ApiInternalCheckCodeRouteImport.update({
+  id: '/api/internal/check-code',
+  path: '/api/internal/check-code',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -47,6 +59,8 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
+  '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,6 +68,8 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
+  '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -62,13 +78,37 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/login': typeof LoginRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
+  '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/activate' | '/dashboard' | '/login' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/activate'
+    | '/dashboard'
+    | '/login'
+    | '/api/auth/$'
+    | '/api/internal/check-code'
+    | '/api/internal/generate-code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/activate' | '/dashboard' | '/login' | '/api/auth/$'
-  id: '__root__' | '/' | '/activate' | '/dashboard' | '/login' | '/api/auth/$'
+  to:
+    | '/'
+    | '/activate'
+    | '/dashboard'
+    | '/login'
+    | '/api/auth/$'
+    | '/api/internal/check-code'
+    | '/api/internal/generate-code'
+  id:
+    | '__root__'
+    | '/'
+    | '/activate'
+    | '/dashboard'
+    | '/login'
+    | '/api/auth/$'
+    | '/api/internal/check-code'
+    | '/api/internal/generate-code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -77,6 +117,8 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   LoginRoute: typeof LoginRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiInternalCheckCodeRoute: typeof ApiInternalCheckCodeRoute
+  ApiInternalGenerateCodeRoute: typeof ApiInternalGenerateCodeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -109,6 +151,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/internal/generate-code': {
+      id: '/api/internal/generate-code'
+      path: '/api/internal/generate-code'
+      fullPath: '/api/internal/generate-code'
+      preLoaderRoute: typeof ApiInternalGenerateCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/check-code': {
+      id: '/api/internal/check-code'
+      path: '/api/internal/check-code'
+      fullPath: '/api/internal/check-code'
+      preLoaderRoute: typeof ApiInternalCheckCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -125,6 +181,8 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   LoginRoute: LoginRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiInternalCheckCodeRoute: ApiInternalCheckCodeRoute,
+  ApiInternalGenerateCodeRoute: ApiInternalGenerateCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

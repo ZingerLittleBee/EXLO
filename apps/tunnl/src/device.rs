@@ -82,7 +82,10 @@ impl DeviceFlowClient {
     pub fn new(config: DeviceFlowConfig) -> Self {
         Self {
             config,
-            http_client: reqwest::Client::new(),
+            http_client: reqwest::Client::builder()
+                .no_proxy()  // Bypass system proxy (e.g., Surge)
+                .build()
+                .expect("Failed to build HTTP client"),
         }
     }
 
