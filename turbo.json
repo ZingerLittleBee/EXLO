@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": ["CORS_ORIGIN", "DATABASE_URL", "NODE_ENV"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -8,7 +9,11 @@
       "outputs": ["dist/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "inputs": ["$TURBO_DEFAULT$", "biome.json", "package.json"]
+    },
+    "fix": {
+      "cache": false
     },
     "check-types": {
       "dependsOn": ["^check-types"]

@@ -91,7 +91,7 @@ function UsersPage() {
           <p className="text-muted-foreground">Manage users and send invitations</p>
         </div>
 
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog onOpenChange={setIsDialogOpen} open={isDialogOpen}>
           <DialogTrigger asChild>
             <Button>Invite User</Button>
           </DialogTrigger>
@@ -106,8 +106,8 @@ function UsersPage() {
                 <div className="rounded-lg bg-muted p-4">
                   <Label className="font-medium text-sm">Invitation Link</Label>
                   <div className="mt-2 flex gap-2">
-                    <Input readOnly value={generatedLink} className="font-mono text-xs" />
-                    <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                    <Input className="font-mono text-xs" readOnly value={generatedLink} />
+                    <Button onClick={handleCopyLink} size="sm" variant="outline">
                       Copy
                     </Button>
                   </div>
@@ -126,18 +126,18 @@ function UsersPage() {
                     <Label htmlFor="email">Email Address</Label>
                     <Input
                       id="email"
-                      type="email"
-                      placeholder="user@example.com"
-                      value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      placeholder="user@example.com"
+                      type="email"
+                      value={email}
                     />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={handleCloseDialog}>
+                  <Button onClick={handleCloseDialog} variant="outline">
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateInvitation} disabled={isCreating}>
+                  <Button disabled={isCreating} onClick={handleCreateInvitation}>
                     {isCreating ? 'Creating...' : 'Create Invitation'}
                   </Button>
                 </DialogFooter>
@@ -158,7 +158,7 @@ function UsersPage() {
           ) : (
             <div className="divide-y">
               {loaderData.invitations.map((invitation) => (
-                <div key={invitation.id} className="flex items-center justify-between py-4">
+                <div className="flex items-center justify-between py-4" key={invitation.id}>
                   <div>
                     <p className="font-medium">{invitation.email}</p>
                     <p className="text-muted-foreground text-sm">
@@ -169,7 +169,7 @@ function UsersPage() {
                       )}
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => handleDeleteInvitation(invitation.id)}>
+                  <Button onClick={() => handleDeleteInvitation(invitation.id)} size="sm" variant="outline">
                     Delete
                   </Button>
                 </div>

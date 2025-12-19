@@ -69,12 +69,12 @@ function LoginPage() {
         </CardHeader>
         <CardContent>
           <form
+            className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault()
               e.stopPropagation()
               form.handleSubmit()
             }}
-            className="space-y-4"
           >
             <form.Field name="email">
               {(field) => (
@@ -83,14 +83,14 @@ function LoginPage() {
                   <Input
                     id={field.name}
                     name={field.name}
-                    type="email"
-                    placeholder="you@example.com"
-                    value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="you@example.com"
+                    type="email"
+                    value={field.state.value}
                   />
                   {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-destructive text-sm">
+                    <p className="text-destructive text-sm" key={error?.message}>
                       {error?.message}
                     </p>
                   ))}
@@ -105,14 +105,14 @@ function LoginPage() {
                   <Input
                     id={field.name}
                     name={field.name}
-                    type="password"
-                    placeholder="Your password"
-                    value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Your password"
+                    type="password"
+                    value={field.state.value}
                   />
                   {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-destructive text-sm">
+                    <p className="text-destructive text-sm" key={error?.message}>
                       {error?.message}
                     </p>
                   ))}
@@ -122,7 +122,7 @@ function LoginPage() {
 
             <form.Subscribe>
               {(state) => (
-                <Button type="submit" className="w-full" disabled={!state.canSubmit || state.isSubmitting}>
+                <Button className="w-full" disabled={!state.canSubmit || state.isSubmitting} type="submit">
                   {state.isSubmitting ? 'Signing in...' : 'Sign In'}
                 </Button>
               )}

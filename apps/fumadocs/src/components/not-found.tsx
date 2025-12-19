@@ -4,10 +4,10 @@ import { HomeLayout } from 'fumadocs-ui/layouts/home'
 export function NotFound() {
   return (
     <HomeLayout
+      className="justify-center py-32 text-center"
       nav={{
         title: 'Tanstack Start'
       }}
-      className="justify-center py-32 text-center"
     >
       <div className="flex flex-col items-center gap-4">
         <h1 className="font-bold text-6xl text-fd-muted-foreground">404</h1>
@@ -16,8 +16,8 @@ export function NotFound() {
           The page you are looking for might have been removed, had its name changed, or is temporarily unavailable.
         </p>
         <Link
-          to="/"
           className="mt-4 rounded-lg bg-fd-primary px-4 py-2 font-medium text-fd-primary-foreground text-sm transition-opacity hover:opacity-90"
+          to="/"
         >
           Back to Home
         </Link>

@@ -55,12 +55,12 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
       <h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
 
       <form
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           e.stopPropagation()
           form.handleSubmit()
         }}
-        className="space-y-4"
       >
         <div>
           <form.Field name="email">
@@ -70,13 +70,13 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
                 <Input
                   id={field.name}
                   name={field.name}
-                  type="email"
-                  value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  type="email"
+                  value={field.state.value}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p className="text-red-500" key={error?.message}>
                     {error?.message}
                   </p>
                 ))}
@@ -93,13 +93,13 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
                 <Input
                   id={field.name}
                   name={field.name}
-                  type="password"
-                  value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
+                  type="password"
+                  value={field.state.value}
                 />
                 {field.state.meta.errors.map((error) => (
-                  <p key={error?.message} className="text-red-500">
+                  <p className="text-red-500" key={error?.message}>
                     {error?.message}
                   </p>
                 ))}
@@ -110,7 +110,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
 
         <form.Subscribe>
           {(state) => (
-            <Button type="submit" className="w-full" disabled={!state.canSubmit || state.isSubmitting}>
+            <Button className="w-full" disabled={!state.canSubmit || state.isSubmitting} type="submit">
               {state.isSubmitting ? 'Submitting...' : 'Sign In'}
             </Button>
           )}
@@ -118,7 +118,7 @@ export default function SignInForm({ onSwitchToSignUp }: { onSwitchToSignUp: () 
       </form>
 
       <div className="mt-4 text-center">
-        <Button variant="link" onClick={onSwitchToSignUp} className="text-indigo-600 hover:text-indigo-800">
+        <Button className="text-indigo-600 hover:text-indigo-800" onClick={onSwitchToSignUp} variant="link">
           Need an account? Sign Up
         </Button>
       </div>

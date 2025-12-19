@@ -19,6 +19,7 @@
       "@/*": ["./src/*"],
       "fumadocs-mdx:collections/*": [".source/*"]
     },
-    "noEmit": true
+    "noEmit": true,
+    "strictNullChecks": true
   }
 }

@@ -137,7 +137,7 @@ function ActivatePage() {
 
           {error && <p className="text-destructive text-sm">{error}</p>}
 
-          <Button onClick={handleAuthorize} disabled={isLoading} className="w-full" size="lg">
+          <Button className="w-full" disabled={isLoading} onClick={handleAuthorize} size="lg">
             {isLoading ? 'Authorizing...' : 'Authorize SSH Session'}
           </Button>
 

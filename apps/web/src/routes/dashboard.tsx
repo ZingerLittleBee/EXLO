@@ -24,21 +24,21 @@ function DashboardLayout() {
       <aside className="w-64 border-r bg-card p-4">
         <nav className="space-y-2">
           <Link
-            to="/dashboard"
-            className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
             activeOptions={{ exact: true }}
+            className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
+            to="/dashboard"
           >
             Overview
           </Link>
           <Link
-            to="/dashboard/users"
             className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
+            to="/dashboard/users"
           >
             User Management
           </Link>
           <Link
-            to="/dashboard/tunnels"
             className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
+            to="/dashboard/tunnels"
           >
             Active Tunnels
           </Link>

@@ -1,5 +1,5 @@
-import { authMiddleware } from '@/middleware/auth'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/middleware/auth'
 
 // Type for active tunnel from the Rust API
 export interface ActiveTunnel {
@@ -23,8 +23,8 @@ export const getTunnels = createServerFn({ method: 'GET' })
       const response = await fetch(`${MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       })
 
       if (!response.ok) {
@@ -54,8 +54,8 @@ export const kickTunnel = createServerFn({ method: 'POST' })
       const response = await fetch(`${MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
-        },
+          'Content-Type': 'application/json'
+        }
       })
 
       if (!response.ok) {
