@@ -21,8 +21,8 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Button variant="outline" asChild>
-        <Link to="/login" search={{}}>
+      <Button asChild variant="outline">
+        <Link search={{}} to="/login">
           Sign In
         </Link>
       </Button>
@@ -40,7 +40,6 @@ export default function UserMenu() {
         <DropdownMenuItem>{session.user.email}</DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Button
-            variant="destructive"
             className="w-full"
             onClick={() => {
               authClient.signOut({
@@ -53,6 +52,7 @@ export default function UserMenu() {
                 }
               })
             }}
+            variant="destructive"
           >
             Sign Out
           </Button>

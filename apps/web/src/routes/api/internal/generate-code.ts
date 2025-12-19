@@ -8,8 +8,8 @@ const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || 'dev-secret'
 export const Route = createFileRoute('/api/internal/generate-code')({
   server: {
     handlers: {
-      GET: async () => {
-        return new Response(
+      GET: async () =>
+        new Response(
           JSON.stringify({
             endpoint: '/api/internal/generate-code',
             method: 'POST required',
@@ -18,8 +18,7 @@ export const Route = createFileRoute('/api/internal/generate-code')({
           {
             headers: { 'Content-Type': 'application/json' }
           }
-        )
-      },
+        ),
       POST: async ({ request }) => {
         const secret = request.headers.get('X-Internal-Secret')
         if (secret !== INTERNAL_SECRET) {
@@ -37,7 +36,7 @@ export const Route = createFileRoute('/api/internal/generate-code')({
             expiresAt: string
           }
 
-          if (!code || !sessionId || !expiresAt) {
+          if (!(code && sessionId && expiresAt)) {
             return new Response(JSON.stringify({ error: 'Missing required fields' }), {
               status: 400,
               headers: { 'Content-Type': 'application/json' }

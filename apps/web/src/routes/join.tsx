@@ -121,12 +121,12 @@ function JoinPage() {
           </div>
 
           <form
+            className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault()
               e.stopPropagation()
               form.handleSubmit()
             }}
-            className="space-y-4"
           >
             <form.Field name="name">
               {(field) => (
@@ -135,13 +135,13 @@ function JoinPage() {
                   <Input
                     id={field.name}
                     name={field.name}
-                    placeholder="Your name"
-                    value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Your name"
+                    value={field.state.value}
                   />
                   {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-destructive text-sm">
+                    <p className="text-destructive text-sm" key={error?.message}>
                       {error?.message}
                     </p>
                   ))}
@@ -156,14 +156,14 @@ function JoinPage() {
                   <Input
                     id={field.name}
                     name={field.name}
-                    type="password"
-                    placeholder="Min. 8 characters"
-                    value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Min. 8 characters"
+                    type="password"
+                    value={field.state.value}
                   />
                   {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-destructive text-sm">
+                    <p className="text-destructive text-sm" key={error?.message}>
                       {error?.message}
                     </p>
                   ))}
@@ -178,14 +178,14 @@ function JoinPage() {
                   <Input
                     id={field.name}
                     name={field.name}
-                    type="password"
-                    placeholder="Confirm your password"
-                    value={field.state.value}
                     onBlur={field.handleBlur}
                     onChange={(e) => field.handleChange(e.target.value)}
+                    placeholder="Confirm your password"
+                    type="password"
+                    value={field.state.value}
                   />
                   {field.state.meta.errors.map((error) => (
-                    <p key={error?.message} className="text-destructive text-sm">
+                    <p className="text-destructive text-sm" key={error?.message}>
                       {error?.message}
                     </p>
                   ))}
@@ -195,7 +195,7 @@ function JoinPage() {
 
             <form.Subscribe>
               {(state) => (
-                <Button type="submit" className="w-full" disabled={!state.canSubmit || state.isSubmitting}>
+                <Button className="w-full" disabled={!state.canSubmit || state.isSubmitting} type="submit">
                   {state.isSubmitting ? 'Creating Account...' : 'Create Account'}
                 </Button>
               )}

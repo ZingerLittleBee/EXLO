@@ -1,7 +1,7 @@
+import { authMiddleware } from '@/middleware/auth'
 import { db, eq } from '@fwd.rs/db'
 import { activationCodes } from '@fwd.rs/db/schema/index'
 import { createServerFn } from '@tanstack/react-start'
-import { authMiddleware } from '@/middleware/auth'
 
 // Server function to authorize a device code
 export const authorizeCode = createServerFn({ method: 'POST' })

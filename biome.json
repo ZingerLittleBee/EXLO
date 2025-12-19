@@ -1,14 +1,13 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "vcs": {
-    "enabled": false,
+    "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": false
+    "useIgnoreFile": true
   },
   "files": {
     "ignoreUnknown": false,
     "includes": [
-      "**",
       "!**/.next",
       "!**/dist",
       "!**/.turbo",
@@ -53,11 +52,7 @@
           "level": "warn",
           "fix": "safe",
           "options": {
-            "functions": [
-              "clsx",
-              "cva",
-              "cn"
-            ]
+            "functions": ["clsx", "cva", "cn"]
           }
         }
       },
@@ -88,9 +83,5 @@
       "tailwindDirectives": true
     }
   },
-  "extends": [
-    "ultracite/core",
-    "ultracite/react",
-    "ultracite/remix"
-  ]
+  "extends": ["ultracite/core", "ultracite/react", "ultracite/remix"]
 }
