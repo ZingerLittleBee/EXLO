@@ -27,6 +27,8 @@ pub struct TunnelInfo {
     pub created_at: Instant,
     /// The client's username
     pub username: String,
+    /// The client's IP address
+    pub client_ip: String,
 }
 
 /// Thread-safe global state for the tunnel registry.

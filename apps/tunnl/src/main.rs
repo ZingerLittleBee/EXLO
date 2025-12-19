@@ -19,8 +19,8 @@ use log::info;
 use russh::server::Server;
 
 use tunnl::{
-    load_or_generate_server_key, run_http_proxy, AppState, DeviceFlowClient, DeviceFlowConfig,
-    TunnelServer,
+    load_or_generate_server_key, run_http_proxy, run_management_api, AppState, DeviceFlowClient,
+    DeviceFlowConfig, TunnelServer,
 };
 
 #[tokio::main]
@@ -57,10 +57,12 @@ async fn main() -> anyhow::Result<()> {
 
     let ssh_addr = "0.0.0.0:2222";
     let http_addr = "0.0.0.0:8080";
+    let mgmt_addr = "0.0.0.0:9090";
 
     info!("═══════════════════════════════════════════════════════════════");
-    info!("SSH server:   {}", ssh_addr);
-    info!("HTTP proxy:   {}", http_addr);
+    info!("SSH server:     {}", ssh_addr);
+    info!("HTTP proxy:     {}", http_addr);
+    info!("Management API: {}", mgmt_addr);
     info!("═══════════════════════════════════════════════════════════════");
     info!("To create a tunnel:");
     info!("  ssh -N -R 80:localhost:3000 -p 2222 user@yourserver.com");
@@ -69,12 +71,16 @@ async fn main() -> anyhow::Result<()> {
     info!("═══════════════════════════════════════════════════════════════");
 
     let http_state = state.clone();
+    let mgmt_state = state.clone();
 
     tokio::select! {
         result = server.run_on_address(config, ssh_addr) => {
             result?;
         }
         result = run_http_proxy(http_state, http_addr) => {
+            result?;
+        }
+        result = run_management_api(mgmt_state, mgmt_addr) => {
             result?;
         }
     }

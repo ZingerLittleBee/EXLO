@@ -9,18 +9,32 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ActivateRouteImport } from './routes/activate'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardTunnelsRouteImport } from './routes/dashboard/tunnels'
 import { Route as ApiInternalGenerateCodeRouteImport } from './routes/api/internal/generate-code'
 import { Route as ApiInternalCheckCodeRouteImport } from './routes/api/internal/check-code'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -37,6 +51,16 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardUsersRoute = DashboardUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardTunnelsRoute = DashboardTunnelsRouteImport.update({
   id: '/tunnels',
@@ -63,8 +87,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/dashboard/tunnels': typeof DashboardTunnelsRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
@@ -72,9 +100,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
-  '/dashboard': typeof DashboardRouteWithChildren
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/dashboard/tunnels': typeof DashboardTunnelsRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
@@ -84,8 +115,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
   '/dashboard': typeof DashboardRouteWithChildren
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
   '/dashboard/tunnels': typeof DashboardTunnelsRoute
+  '/dashboard/users': typeof DashboardUsersRoute
+  '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
@@ -96,8 +131,12 @@ export interface FileRouteTypes {
     | '/'
     | '/activate'
     | '/dashboard'
+    | '/join'
     | '/login'
+    | '/setup'
     | '/dashboard/tunnels'
+    | '/dashboard/users'
+    | '/dashboard/'
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
@@ -105,9 +144,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/activate'
-    | '/dashboard'
+    | '/join'
     | '/login'
+    | '/setup'
     | '/dashboard/tunnels'
+    | '/dashboard/users'
+    | '/dashboard'
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
@@ -116,8 +158,12 @@ export interface FileRouteTypes {
     | '/'
     | '/activate'
     | '/dashboard'
+    | '/join'
     | '/login'
+    | '/setup'
     | '/dashboard/tunnels'
+    | '/dashboard/users'
+    | '/dashboard/'
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
@@ -127,7 +173,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivateRoute: typeof ActivateRoute
   DashboardRoute: typeof DashboardRouteWithChildren
+  JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
+  SetupRoute: typeof SetupRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiInternalCheckCodeRoute: typeof ApiInternalCheckCodeRoute
   ApiInternalGenerateCodeRoute: typeof ApiInternalGenerateCodeRoute
@@ -135,11 +183,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -162,6 +224,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/users': {
+      id: '/dashboard/users'
+      path: '/users'
+      fullPath: '/dashboard/users'
+      preLoaderRoute: typeof DashboardUsersRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/dashboard/tunnels': {
       id: '/dashboard/tunnels'
@@ -196,10 +272,14 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteChildren {
   DashboardTunnelsRoute: typeof DashboardTunnelsRoute
+  DashboardUsersRoute: typeof DashboardUsersRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardTunnelsRoute: DashboardTunnelsRoute,
+  DashboardUsersRoute: DashboardUsersRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
 }
 
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
@@ -210,7 +290,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivateRoute: ActivateRoute,
   DashboardRoute: DashboardRouteWithChildren,
+  JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
+  SetupRoute: SetupRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiInternalCheckCodeRoute: ApiInternalCheckCodeRoute,
   ApiInternalGenerateCodeRoute: ApiInternalGenerateCodeRoute,
