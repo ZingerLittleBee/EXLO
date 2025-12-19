@@ -43,6 +43,16 @@ ssh -o StrictHostKeyChecking=no -N -R 80:localhost:3000 -p 2222 test@localhost
 curl -H "Host: tunnel-xxx.localhost" http://localhost:8080/
 ```
 
+## Disconnecting SSH
+
+Since `Ctrl+C` does not work in SSH reverse tunnel mode, you can use the following method to disconnect:
+
+Press the following keys in sequence:
+
+1. **Enter** (Newline, to ensure you are at the start of a line)
+2. **`~`** (Tilde)
+3. **`.`** (Dot)
+
 ## Project Structure
 
 ```
