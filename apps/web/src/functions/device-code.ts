@@ -1,13 +1,14 @@
-import { authMiddleware } from '@/middleware/auth'
 import { db, eq } from '@fwd.rs/db'
 import { activationCodes } from '@fwd.rs/db/schema/index'
 import { createServerFn } from '@tanstack/react-start'
+import { authMiddleware } from '@/middleware/auth'
 
 // Server function to authorize a device code
 export const authorizeCode = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
+  .inputValidator((data: { code: string }) => data)
   .handler(async ({ context, data }) => {
-    const { code } = data as { code: string }
+    const { code } = data
 
     if (!context.session?.user) {
       throw new Error('Not authenticated')
@@ -45,24 +46,26 @@ export const authorizeCode = createServerFn({ method: 'POST' })
   })
 
 // Get code status for display
-export const getCodeStatus = createServerFn({ method: 'GET' }).handler(async ({ data }) => {
-  const { code } = data as { code: string }
+export const getCodeStatus = createServerFn({ method: 'GET' })
+  .inputValidator((data: { code: string }) => data)
+  .handler(async ({ data }) => {
+    const { code } = data
 
-  if (!code) {
-    return { error: 'No code provided' }
-  }
+    if (!code) {
+      return { error: 'No code provided' }
+    }
 
-  const existing = await db.query.activationCodes.findFirst({
-    where: eq(activationCodes.code, code)
+    const existing = await db.query.activationCodes.findFirst({
+      where: eq(activationCodes.code, code)
+    })
+
+    if (!existing) {
+      return { status: 'not_found' }
+    }
+
+    if (new Date() > existing.expiresAt) {
+      return { status: 'expired' }
+    }
+
+    return { status: existing.status }
   })
-
-  if (!existing) {
-    return { status: 'not_found' }
-  }
-
-  if (new Date() > existing.expiresAt) {
-    return { status: 'expired' }
-  }
-
-  return { status: existing.status }
-})
