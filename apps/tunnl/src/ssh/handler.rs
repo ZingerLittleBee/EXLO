@@ -15,6 +15,7 @@ use tokio::sync::{oneshot, Mutex};
 use crate::device::{DeviceFlowClient, RegisterTunnelRequest, generate_activation_code};
 use crate::error::TunnelError;
 use crate::state::{AppState, TunnelInfo};
+use crate::terminal_ui;
 
 /// A pending tunnel request waiting for verification
 #[derive(Debug, Clone)]
@@ -185,8 +186,6 @@ impl SshHandler {
         let peer_addr = self.peer_addr;
 
         tokio::spawn(async move {
-            // Spinner frames for loading animation
-            let spinner_frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
             let mut frame_idx = 0;
 
             // Spawn a task to animate the spinner
@@ -200,13 +199,7 @@ impl SshHandler {
                     };
 
                     if let (Some(handle), Some(channel_id)) = (handle, channel_id) {
-                        // Move to the "Waiting for authorization..." line and update spinner
-                        // Line 9 of the box (0-indexed from top)
-                        let spinner = spinner_frames[frame_idx % spinner_frames.len()];
-                        let update = format!(
-                            "\x1B[s\x1B[3A\r║  {} Waiting for authorization...                             ║\x1B[u",
-                            spinner
-                        );
+                        let update = terminal_ui::create_spinner_update(frame_idx);
                         let _ = handle.data(channel_id, update.into_bytes().into()).await;
                     }
 
@@ -303,47 +296,8 @@ impl SshHandler {
 
                             // Send success message to SSH client by replacing the activation box
                             if let Some(channel_id) = session_channel_id {
-                                let tunnel_lines: Vec<String> = created_tunnels.iter()
-                                    .map(|(subdomain, _port)| {
-                                        let url = format!("http://{}.localhost:8080", subdomain);
-                                        format!(
-                                            "║  \x1B[36m➜\x1B[0m  \x1B[4m{}\x1B[0m{}║",
-                                            url,
-                                            " ".repeat(56 - url.len())
-                                        )
-                                    })
-                                    .collect();
-
-                                // Truncate user_id if too long for display
-                                let display_user = if user_id.len() > 20 {
-                                    format!("{}...", &user_id[..17])
-                                } else {
-                                    user_id.clone()
-                                };
-
-                                // Move cursor up 11 lines (height of the activation box) and clear
-                                // \x1B[11A = move up 11 lines
-                                // \x1B[0J = clear from cursor to end of screen
-                                // \x1B[32m = green, \x1B[36m = cyan, \x1B[4m = underline, \x1B[0m = reset
-                                let clear_and_replace = format!(
-                                    "\x1B[11A\x1B[0J\
-                                    ╔══════════════════════════════════════════════════════════════╗\r\n\
-                                    ║                 \x1B[32m✓ TUNNEL ACTIVATED\x1B[0m                          ║\r\n\
-                                    ╠══════════════════════════════════════════════════════════════╣\r\n\
-                                    ║                                                              ║\r\n\
-                                    ║  Welcome back, \x1B[1m{display_user}\x1B[0m!{padding} ║\r\n\
-                                    ║                                                              ║\r\n\
-                                    ║  Your tunnel is ready:                                       ║\r\n\
-                                    {tunnels}\r\n\
-                                    ║                                                              ║\r\n\
-                                    ║  \x1B[2mPress Ctrl+C to disconnect\x1B[0m                                ║\r\n\
-                                    ╚══════════════════════════════════════════════════════════════╝\r\n\
-                                    \r\n",
-                                    display_user = display_user,
-                                    padding = " ".repeat(40 - display_user.len().min(40)),
-                                    tunnels = tunnel_lines.join("\r\n")
-                                );
-                                if let Err(e) = handle.data(channel_id, clear_and_replace.into_bytes().into()).await {
+                                let success_msg = terminal_ui::create_success_box(&user_id, &created_tunnels);
+                                if let Err(e) = handle.data(channel_id, success_msg.into_bytes().into()).await {
                                     warn!("Failed to send tunnel success message: {:?}", e);
                                 }
                             }
@@ -361,29 +315,8 @@ impl SshHandler {
 
                             // Send error message to SSH client by replacing the activation box
                             if let (Some(handle), Some(channel_id)) = (session_handle, session_channel_id) {
-                                // Truncate reason if too long
-                                let display_reason = if reason.len() > 54 {
-                                    format!("{}...", &reason[..51])
-                                } else {
-                                    reason.clone()
-                                };
-
-                                let clear_and_replace = format!(
-                                    "\x1B[11A\x1B[0J\
-                                    ╔══════════════════════════════════════════════════════════════╗\r\n\
-                                    ║                  \x1B[31mACTIVATION FAILED\x1B[0m                          ║\r\n\
-                                    ╠══════════════════════════════════════════════════════════════╣\r\n\
-                                    ║                                                              ║\r\n\
-                                    ║  \x1B[31m✗\x1B[0m {:<57} ║\r\n\
-                                    ║                                                              ║\r\n\
-                                    ║  Please reconnect to try again.                             ║\r\n\
-                                    ║                                                              ║\r\n\
-                                    ║  Connection will close in 3 seconds...                      ║\r\n\
-                                    ╚══════════════════════════════════════════════════════════════╝\r\n\
-                                    \r\n",
-                                    display_reason
-                                );
-                                if let Err(e) = handle.data(channel_id, clear_and_replace.into_bytes().into()).await {
+                                let error_msg = terminal_ui::create_error_box(&reason);
+                                if let Err(e) = handle.data(channel_id, error_msg.into_bytes().into()).await {
                                     warn!("Failed to send error message: {:?}", e);
                                 }
 
@@ -586,24 +519,8 @@ impl Handler for SshHandler {
                     // Log to server
                     info!("Device Flow started - Code: {}, URL: {}", code, url);
 
-                    // Send message to client with colors
-                    // \x1B[33m = yellow, \x1B[36m = cyan, \x1B[4m = underline, \x1B[1m = bold, \x1B[0m = reset
-                    let message = format!(
-                        "\r\n\
-                        ╔══════════════════════════════════════════════════════════════╗\r\n\
-                        ║                 \x1B[33m🔐 DEVICE ACTIVATION\x1B[0m                        ║\r\n\
-                        ╠══════════════════════════════════════════════════════════════╣\r\n\
-                        ║                                                              ║\r\n\
-                        ║  Your code: \x1B[1m\x1B[33m{:<10}\x1B[0m                                    ║\r\n\
-                        ║                                                              ║\r\n\
-                        ║  Open this URL in your browser:                              ║\r\n\
-                        ║  \x1B[4m\x1B[36m{:<58}\x1B[0m ║\r\n\
-                        ║                                                              ║\r\n\
-                        ║  ⠋ Waiting for authorization...                              ║\r\n\
-                        ╚══════════════════════════════════════════════════════════════╝\r\n\
-                        \r\n",
-                        code, url
-                    );
+                    // Send activation box to client
+                    let message = terminal_ui::create_activation_box(&code, &url);
                     if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
                         warn!("Failed to send activation message: {:?}", e);
                     }
@@ -666,24 +583,8 @@ impl Handler for SshHandler {
         if let VerificationStatus::Pending { code } = status {
             let url = self.device_flow_client.get_activation_url(&code);
 
-            // Send message to client with colors
-            let message = format!(
-                "\r\n\
-                ╔══════════════════════════════════════════════════════════════╗\r\n\
-                ║                 \x1B[33m🔐 DEVICE ACTIVATION\x1B[0m                        ║\r\n\
-                ╠══════════════════════════════════════════════════════════════╣\r\n\
-                ║                                                              ║\r\n\
-                ║  Your code: \x1B[1m\x1B[33m{:<10}\x1B[0m                                    ║\r\n\
-                ║                                                              ║\r\n\
-                ║  Open this URL in your browser:                              ║\r\n\
-                ║  \x1B[4m\x1B[36m{:<58}\x1B[0m ║\r\n\
-                ║                                                              ║\r\n\
-                ║  ⠋ Waiting for authorization...                              ║\r\n\
-                ╚══════════════════════════════════════════════════════════════╝\r\n\
-                \r\n",
-                code, url
-            );
-
+            // Send activation box to client
+            let message = terminal_ui::create_activation_box(&code, &url);
             if let Err(e) = session.data(channel, message.into_bytes().into()) {
                 warn!("Failed to send activation message: {:?}", e);
             }
