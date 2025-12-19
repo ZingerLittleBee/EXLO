@@ -18,6 +18,8 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as DashboardTunnelsRouteImport } from './routes/dashboard/tunnels'
+import { Route as ApiInternalUnregisterTunnelRouteImport } from './routes/api/internal/unregister-tunnel'
+import { Route as ApiInternalRegisterTunnelRouteImport } from './routes/api/internal/register-tunnel'
 import { Route as ApiInternalGenerateCodeRouteImport } from './routes/api/internal/generate-code'
 import { Route as ApiInternalCheckCodeRouteImport } from './routes/api/internal/check-code'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -67,6 +69,18 @@ const DashboardTunnelsRoute = DashboardTunnelsRouteImport.update({
   path: '/tunnels',
   getParentRoute: () => DashboardRoute,
 } as any)
+const ApiInternalUnregisterTunnelRoute =
+  ApiInternalUnregisterTunnelRouteImport.update({
+    id: '/api/internal/unregister-tunnel',
+    path: '/api/internal/unregister-tunnel',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiInternalRegisterTunnelRoute =
+  ApiInternalRegisterTunnelRouteImport.update({
+    id: '/api/internal/register-tunnel',
+    path: '/api/internal/register-tunnel',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiInternalGenerateCodeRoute = ApiInternalGenerateCodeRouteImport.update({
   id: '/api/internal/generate-code',
   path: '/api/internal/generate-code',
@@ -96,6 +110,8 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
+  '/api/internal/register-tunnel': typeof ApiInternalRegisterTunnelRoute
+  '/api/internal/unregister-tunnel': typeof ApiInternalUnregisterTunnelRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -109,6 +125,8 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
+  '/api/internal/register-tunnel': typeof ApiInternalRegisterTunnelRoute
+  '/api/internal/unregister-tunnel': typeof ApiInternalUnregisterTunnelRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -124,6 +142,8 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
+  '/api/internal/register-tunnel': typeof ApiInternalRegisterTunnelRoute
+  '/api/internal/unregister-tunnel': typeof ApiInternalUnregisterTunnelRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -140,6 +160,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
+    | '/api/internal/register-tunnel'
+    | '/api/internal/unregister-tunnel'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -153,6 +175,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
+    | '/api/internal/register-tunnel'
+    | '/api/internal/unregister-tunnel'
   id:
     | '__root__'
     | '/'
@@ -167,6 +191,8 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
+    | '/api/internal/register-tunnel'
+    | '/api/internal/unregister-tunnel'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -179,6 +205,8 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiInternalCheckCodeRoute: typeof ApiInternalCheckCodeRoute
   ApiInternalGenerateCodeRoute: typeof ApiInternalGenerateCodeRoute
+  ApiInternalRegisterTunnelRoute: typeof ApiInternalRegisterTunnelRoute
+  ApiInternalUnregisterTunnelRoute: typeof ApiInternalUnregisterTunnelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -246,6 +274,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardTunnelsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/api/internal/unregister-tunnel': {
+      id: '/api/internal/unregister-tunnel'
+      path: '/api/internal/unregister-tunnel'
+      fullPath: '/api/internal/unregister-tunnel'
+      preLoaderRoute: typeof ApiInternalUnregisterTunnelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/internal/register-tunnel': {
+      id: '/api/internal/register-tunnel'
+      path: '/api/internal/register-tunnel'
+      fullPath: '/api/internal/register-tunnel'
+      preLoaderRoute: typeof ApiInternalRegisterTunnelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/internal/generate-code': {
       id: '/api/internal/generate-code'
       path: '/api/internal/generate-code'
@@ -296,6 +338,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiInternalCheckCodeRoute: ApiInternalCheckCodeRoute,
   ApiInternalGenerateCodeRoute: ApiInternalGenerateCodeRoute,
+  ApiInternalRegisterTunnelRoute: ApiInternalRegisterTunnelRoute,
+  ApiInternalUnregisterTunnelRoute: ApiInternalUnregisterTunnelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

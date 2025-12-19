@@ -9,6 +9,7 @@ pub mod management;
 pub mod proxy;
 pub mod ssh;
 pub mod state;
+pub mod terminal_ui;
 
 pub use device::{generate_activation_code, DeviceFlowClient, DeviceFlowConfig};
 pub use error::TunnelError;

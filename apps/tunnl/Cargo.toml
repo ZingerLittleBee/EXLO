@@ -42,6 +42,10 @@ axum = "0.8"
 tower-http = { version = "0.6", features = ["cors"] }
 chrono = { version = "0.4", features = ["serde"] }
 
+# Terminal UI
+console = "0.15"
+unicode-width = "0.2"
+
 [dev-dependencies]
 # Testing
 tokio-test = "0.4"

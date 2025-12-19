@@ -82,10 +82,10 @@ async fn handle_http_request(
     let channel_result = tunnel
         .handle
         .channel_open_forwarded_tcpip(
-            "localhost",
-            tunnel.server_port,
+            &tunnel.requested_address,
+            tunnel.requested_port,
             "127.0.0.1",
-            12345,
+            12345, // Dummy originator port required by SSH protocol
         )
         .await;
 

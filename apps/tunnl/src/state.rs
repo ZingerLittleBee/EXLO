@@ -1,7 +1,6 @@
 //! State management for tunnel registry.
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Instant;
 
 use log::info;
