@@ -1,6 +1,3 @@
-import { useEffect, useState, useCallback } from 'react'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { getTunnels, kickTunnel, type ActiveTunnel } from '@/functions/tunnels'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -17,6 +14,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { type ActiveTunnel, getTunnels, kickTunnel } from '@/functions/tunnels'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/dashboard/tunnels')({
@@ -56,6 +56,11 @@ function TunnelsDashboard() {
   const [tunnels, setTunnels] = useState<ActiveTunnel[]>(initialTunnels)
   const [isLoading, setIsLoading] = useState(false)
   const [kickingSubdomain, setKickingSubdomain] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const fetchTunnels = useCallback(async () => {
     try {
@@ -211,7 +216,7 @@ function TunnelsDashboard() {
                     </TableCell>
                     <TableCell>
                       <span className="tabular-nums">
-                        {formatDuration(tunnel.connected_at)}
+                        {mounted ? formatDuration(tunnel.connected_at) : '—'}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
