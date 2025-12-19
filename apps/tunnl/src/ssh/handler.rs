@@ -29,6 +29,10 @@ struct SharedHandlerState {
     pending_tunnels: Vec<PendingTunnel>,
     registered_subdomains: Vec<String>,
     subdomain_counter: u32,
+    /// Session handle for sending data to client (set after auth succeeds)
+    session_handle: Option<Handle>,
+    /// Session channel ID (set when session channel is opened)
+    session_channel_id: Option<ChannelId>,
 }
 
 /// Device Flow verification status
@@ -72,6 +76,8 @@ impl SshHandler {
             pending_tunnels: Vec::new(),
             registered_subdomains: Vec::new(),
             subdomain_counter: 0,
+            session_handle: None,
+            session_channel_id: None,
         }));
         Self {
             state,
@@ -170,10 +176,7 @@ impl SshHandler {
         let client = self.device_flow_client.clone();
         let shared_state = self.shared_state.clone();
         let app_state = self.state.clone();
-        let session_handle = self.session_handle.clone();
-        let session_channel_id = self.session_channel_id;
         let peer_addr = self.peer_addr;
-        let _username = self.username.clone();
 
         tokio::spawn(async move {
             // Use select to handle cancellation
@@ -183,11 +186,16 @@ impl SshHandler {
                         Ok(user_id) => {
                             info!("Device Flow verified! User ID: {}", user_id);
 
-                            // Update verification status
-                            let pending_tunnels: Vec<PendingTunnel> = {
+                            // Get session handle and channel ID from shared state
+                            // (they are set after the polling task is spawned)
+                            let (session_handle, session_channel_id, pending_tunnels) = {
                                 let mut state = shared_state.lock().await;
                                 state.verification_status = VerificationStatus::Verified { user_id: user_id.clone() };
-                                std::mem::take(&mut state.pending_tunnels)
+                                (
+                                    state.session_handle.clone(),
+                                    state.session_channel_id,
+                                    std::mem::take(&mut state.pending_tunnels),
+                                )
                             };
 
                             // Create all pending tunnels
@@ -278,10 +286,12 @@ impl SshHandler {
                             let reason = format!("Verification failed: {}", e);
                             error!("{}", reason);
 
-                            {
+                            // Get session handle and channel ID from shared state
+                            let (session_handle, session_channel_id) = {
                                 let mut state = shared_state.lock().await;
                                 state.verification_status = VerificationStatus::Failed { reason: reason.clone() };
-                            }
+                                (state.session_handle.clone(), state.session_channel_id)
+                            };
 
                             // Send error message to SSH client
                             if let (Some(handle), Some(channel_id)) = (session_handle, session_channel_id) {
@@ -340,7 +350,10 @@ impl Handler for SshHandler {
 
     async fn auth_succeeded(&mut self, session: &mut Session) -> Result<(), Self::Error> {
         info!("Authentication succeeded for user: {:?}", self.username);
-        self.session_handle = Some(session.handle());
+        let handle = session.handle();
+        self.session_handle = Some(handle.clone());
+        // Also store in shared state for the polling task
+        self.shared_state.lock().await.session_handle = Some(handle);
         Ok(())
     }
 
@@ -480,6 +493,8 @@ impl Handler for SshHandler {
         let channel_id = channel.id();
         info!("Session channel opened: id={:?}", channel_id);
         self.session_channel_id = Some(channel_id);
+        // Also store in shared state for the polling task
+        self.shared_state.lock().await.session_channel_id = Some(channel_id);
 
         // Start Device Flow if not already started or verified
         let status = self.get_verification_status().await;
