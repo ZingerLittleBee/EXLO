@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use log::{debug, error, info, warn};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 
 /// Configuration for the Device Flow
