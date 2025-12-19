@@ -85,7 +85,7 @@ async fn handle_http_request(
             &tunnel.requested_address,
             tunnel.requested_port,
             "127.0.0.1",
-            12345,
+            12345, // Dummy originator port required by SSH protocol
         )
         .await;
 
