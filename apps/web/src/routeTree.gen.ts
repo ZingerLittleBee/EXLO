@@ -9,17 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SetupRouteImport } from './routes/setup'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as JoinRouteImport } from './routes/join'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ActivateRouteImport } from './routes/activate'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardUsersRouteImport } from './routes/dashboard/users'
 import { Route as ApiInternalGenerateCodeRouteImport } from './routes/api/internal/generate-code'
 import { Route as ApiInternalCheckCodeRouteImport } from './routes/api/internal/check-code'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SetupRoute = SetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JoinRoute = JoinRouteImport.update({
+  id: '/join',
+  path: '/join',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -36,6 +49,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardUsersRoute = DashboardUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const ApiInternalGenerateCodeRoute = ApiInternalGenerateCodeRouteImport.update({
   id: '/api/internal/generate-code',
@@ -56,8 +74,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
+  '/dashboard/users': typeof DashboardUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
@@ -65,8 +86,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
+  '/dashboard/users': typeof DashboardUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
@@ -75,8 +99,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/activate': typeof ActivateRoute
-  '/dashboard': typeof DashboardRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/join': typeof JoinRoute
   '/login': typeof LoginRoute
+  '/setup': typeof SetupRoute
+  '/dashboard/users': typeof DashboardUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/internal/check-code': typeof ApiInternalCheckCodeRoute
   '/api/internal/generate-code': typeof ApiInternalGenerateCodeRoute
@@ -87,7 +114,10 @@ export interface FileRouteTypes {
     | '/'
     | '/activate'
     | '/dashboard'
+    | '/join'
     | '/login'
+    | '/setup'
+    | '/dashboard/users'
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
@@ -96,7 +126,10 @@ export interface FileRouteTypes {
     | '/'
     | '/activate'
     | '/dashboard'
+    | '/join'
     | '/login'
+    | '/setup'
+    | '/dashboard/users'
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
@@ -105,7 +138,10 @@ export interface FileRouteTypes {
     | '/'
     | '/activate'
     | '/dashboard'
+    | '/join'
     | '/login'
+    | '/setup'
+    | '/dashboard/users'
     | '/api/auth/$'
     | '/api/internal/check-code'
     | '/api/internal/generate-code'
@@ -114,8 +150,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ActivateRoute: typeof ActivateRoute
-  DashboardRoute: typeof DashboardRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
+  JoinRoute: typeof JoinRoute
   LoginRoute: typeof LoginRoute
+  SetupRoute: typeof SetupRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiInternalCheckCodeRoute: typeof ApiInternalCheckCodeRoute
   ApiInternalGenerateCodeRoute: typeof ApiInternalGenerateCodeRoute
@@ -123,11 +161,25 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/setup': {
+      id: '/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof SetupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join': {
+      id: '/join'
+      path: '/join'
+      fullPath: '/join'
+      preLoaderRoute: typeof JoinRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -150,6 +202,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/users': {
+      id: '/dashboard/users'
+      path: '/users'
+      fullPath: '/dashboard/users'
+      preLoaderRoute: typeof DashboardUsersRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/api/internal/generate-code': {
       id: '/api/internal/generate-code'
@@ -175,11 +234,25 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardUsersRoute: typeof DashboardUsersRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardUsersRoute: DashboardUsersRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ActivateRoute: ActivateRoute,
-  DashboardRoute: DashboardRoute,
+  DashboardRoute: DashboardRouteWithChildren,
+  JoinRoute: JoinRoute,
   LoginRoute: LoginRoute,
+  SetupRoute: SetupRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiInternalCheckCodeRoute: ApiInternalCheckCodeRoute,
   ApiInternalGenerateCodeRoute: ApiInternalGenerateCodeRoute,
