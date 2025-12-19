@@ -36,6 +36,12 @@ function DashboardLayout() {
           >
             User Management
           </Link>
+          <Link
+            to="/dashboard/tunnels"
+            className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
+          >
+            Active Tunnels
+          </Link>
         </nav>
       </aside>
 

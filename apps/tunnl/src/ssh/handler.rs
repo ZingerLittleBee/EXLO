@@ -403,6 +403,11 @@ impl SshHandler {
             _ => self.username.clone().unwrap_or_else(|| "anonymous".to_string()),
         };
 
+        let client_ip = self
+            .peer_addr
+            .map(|addr| addr.ip().to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
         let tunnel_info = TunnelInfo {
             subdomain: subdomain.clone(),
             handle,
@@ -411,6 +416,7 @@ impl SshHandler {
             server_port: 80,
             created_at: Instant::now(),
             username,
+            client_ip,
         };
 
         match self.state.register_tunnel(tunnel_info).await {
