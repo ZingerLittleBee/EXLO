@@ -28,9 +28,10 @@ The system is composed of two primary containers operating in a "Sidecar" patter
 
 ### Phase 1: Foundation & Schema (PostgreSQL/Drizzle)
 **Goal**: Set up data structures for strict access control.
-- [ ] `user` / `session` tables (Better Auth).
+- [x] `user` / `session` tables (Better Auth).
 - [ ] `invitations` table (Invite-only flow).
-- [ ] `activation_codes` table (Device flow).
+- [x] `activation_codes` table (Device flow).
+- [x] `tunnels` table (Persistent tunnel storage).
 
 ### Phase 2: Web Control Plane (Auth & Admin)
 **Goal**: Secure the access points.
@@ -39,14 +40,16 @@ The system is composed of two primary containers operating in a "Sidecar" patter
 
 ### Phase 3: Rust Core - SSH Server & Key Persistence
 **Goal**: Stable, persistent SSH service.
-- [ ] **Key Persistence**: Implementing `load_or_generate` logic for `id_ed25519` host key.
-- [ ] **Virtual Bind**: Mapping `ssh -R` requests to internal channels without binding host ports.
+- [x] **Key Persistence**: Implementing `load_or_generate` logic for `id_ed25519` host key.
+- [x] **Virtual Bind**: Mapping `ssh -R` requests to internal channels without binding host ports.
+- [x] **Terminal UI**: Beautiful box-drawing UI using `console` crate for device activation.
 
 ### Phase 4: Sidecar Management API
 **Goal**: Enable Data Plane <-> Control Plane communication.
-- [ ] `axum` server on `:9090`.
-- [ ] `GET /tunnels`: List active sessions.
-- [ ] `DELETE /tunnels/:subdomain`: Terminate specific connections.
+- [x] `axum` server on `:9090`.
+- [x] `GET /tunnels`: List active sessions.
+- [x] `DELETE /tunnels/:subdomain`: Terminate specific connections.
+- [x] Internal API endpoints for tunnel registration/unregistration.
 
 ### Phase 5: Dashboard & Real-Time Monitor
 **Goal**: "God Mode" UI for administration.
@@ -56,6 +59,8 @@ The system is composed of two primary containers operating in a "Sidecar" patter
 
 ### Phase 6: Device Flow Integration
 **Goal**: Seamless authentication for headless clients.
-- [ ] SSH connection initiates Device Flow (generates code).
-- [ ] Web `/activate` page for user verification.
-- [ ] SSH session polling for verification status.
+- [x] SSH connection initiates Device Flow (generates code).
+- [x] Web `/activate` page for user verification.
+- [x] SSH session polling for verification status.
+- [x] Loading spinner animation during authorization.
+- [x] Success/error UI boxes with styled output.
