@@ -1,3 +1,5 @@
+import { db, eq } from '@fwd.rs/db'
+import { tunnels } from '@fwd.rs/db/schema/index'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -9,13 +11,25 @@ export interface ActiveTunnel {
   connected_at: string
 }
 
+// Type for tunnel stored in database
+export interface StoredTunnel {
+  subdomain: string
+  userId: string
+  sessionId: string
+  requestedAddress: string
+  requestedPort: number
+  serverPort: number
+  clientIp: string
+  createdAt: Date
+}
+
 interface TunnelsListResponse {
   tunnels: ActiveTunnel[]
 }
 
 const MANAGEMENT_API_URL = process.env.TUNNL_MANAGEMENT_API_URL || 'http://127.0.0.1:9090'
 
-// Server function to fetch all active tunnels
+// Server function to fetch all active tunnels from Rust API
 export const getTunnels = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => {
@@ -35,6 +49,37 @@ export const getTunnels = createServerFn({ method: 'GET' })
       return { tunnels: data.tunnels }
     } catch (error) {
       console.error('Error fetching tunnels:', error)
+      return { tunnels: [], error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+// Server function to fetch current user's tunnels from database
+export const getMyTunnels = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const userId = context.session?.user?.id
+    if (!userId) {
+      return { tunnels: [] }
+    }
+
+    try {
+      const userTunnels = await db.select().from(tunnels).where(eq(tunnels.userId, userId))
+      return { tunnels: userTunnels }
+    } catch (error) {
+      console.error('Error fetching user tunnels:', error)
+      return { tunnels: [], error: error instanceof Error ? error.message : 'Unknown error' }
+    }
+  })
+
+// Server function to fetch all tunnels from database (admin only)
+export const getAllStoredTunnels = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .handler(async () => {
+    try {
+      const allTunnels = await db.select().from(tunnels)
+      return { tunnels: allTunnels }
+    } catch (error) {
+      console.error('Error fetching all tunnels:', error)
       return { tunnels: [], error: error instanceof Error ? error.message : 'Unknown error' }
     }
   })

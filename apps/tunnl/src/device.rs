@@ -202,6 +202,76 @@ impl DeviceFlowClient {
     pub fn get_activation_url(&self, code: &str) -> String {
         format!("{}/activate?code={}", self.config.api_base_url, code)
     }
+
+    /// Register a tunnel with the web server (for tracking purposes)
+    pub async fn register_tunnel(&self, tunnel: &RegisterTunnelRequest) -> Result<(), anyhow::Error> {
+        let url = format!("{}/api/internal/register-tunnel", self.config.api_base_url);
+
+        let response = self
+            .http_client
+            .post(&url)
+            .header("X-Internal-Secret", &self.config.internal_secret)
+            .json(tunnel)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            anyhow::bail!("Failed to register tunnel: {} - {}", status, body);
+        }
+
+        info!("Registered tunnel with web server: {}", tunnel.subdomain);
+        Ok(())
+    }
+
+    /// Unregister a tunnel from the web server
+    pub async fn unregister_tunnel(&self, subdomain: &str) -> Result<(), anyhow::Error> {
+        let url = format!("{}/api/internal/unregister-tunnel", self.config.api_base_url);
+
+        let response = self
+            .http_client
+            .post(&url)
+            .header("X-Internal-Secret", &self.config.internal_secret)
+            .json(&UnregisterTunnelRequest {
+                subdomain: subdomain.to_string(),
+            })
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            anyhow::bail!("Failed to unregister tunnel: {} - {}", status, body);
+        }
+
+        info!("Unregistered tunnel from web server: {}", subdomain);
+        Ok(())
+    }
+}
+
+/// Request to register a tunnel
+#[derive(Debug, Serialize)]
+pub struct RegisterTunnelRequest {
+    pub subdomain: String,
+    #[serde(rename = "userId")]
+    pub user_id: String,
+    #[serde(rename = "sessionId")]
+    pub session_id: String,
+    #[serde(rename = "requestedAddress")]
+    pub requested_address: String,
+    #[serde(rename = "requestedPort")]
+    pub requested_port: u32,
+    #[serde(rename = "serverPort")]
+    pub server_port: u32,
+    #[serde(rename = "clientIp")]
+    pub client_ip: String,
+}
+
+/// Request to unregister a tunnel
+#[derive(Debug, Serialize)]
+struct UnregisterTunnelRequest {
+    subdomain: String,
 }
 
 /// Simple time helper (no external chrono dependency)

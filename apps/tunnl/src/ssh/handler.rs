@@ -12,7 +12,7 @@ use russh::{Channel, ChannelId, Disconnect};
 use russh_keys::HashAlg;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::device::{DeviceFlowClient, generate_activation_code};
+use crate::device::{DeviceFlowClient, RegisterTunnelRequest, generate_activation_code};
 use crate::error::TunnelError;
 use crate::state::{AppState, TunnelInfo};
 
@@ -106,7 +106,13 @@ impl SshHandler {
         };
         for subdomain in &subdomains {
             match self.state.remove_tunnel(subdomain).await {
-                Ok(_) => info!("Removed tunnel: {}", subdomain),
+                Ok(_) => {
+                    info!("Removed tunnel: {}", subdomain);
+                    // Unregister from web server
+                    if let Err(e) = self.device_flow_client.unregister_tunnel(subdomain).await {
+                        warn!("Failed to unregister tunnel from web server: {}", e);
+                    }
+                }
                 Err(e) => warn!("Failed to remove tunnel {}: {}", subdomain, e),
             }
         }
@@ -153,7 +159,7 @@ impl SshHandler {
                 self.poll_cancel = Some(cancel_tx);
 
                 // Start the polling task
-                self.spawn_verification_polling(code.clone(), cancel_rx);
+                self.spawn_verification_polling(code.clone(), session_id.clone(), cancel_rx);
 
                 Ok(code)
             }
@@ -172,7 +178,7 @@ impl SshHandler {
     }
 
     /// Spawn a background task to poll for verification
-    fn spawn_verification_polling(&self, code: String, cancel_rx: oneshot::Receiver<()>) {
+    fn spawn_verification_polling(&self, code: String, session_id: String, cancel_rx: oneshot::Receiver<()>) {
         let client = self.device_flow_client.clone();
         let shared_state = self.shared_state.clone();
         let app_state = self.state.clone();
@@ -241,7 +247,21 @@ impl SshHandler {
                                             subdomain, subdomain
                                         );
                                         shared_state.lock().await.registered_subdomains.push(subdomain.clone());
-                                        created_tunnels.push((subdomain, pending.port));
+                                        created_tunnels.push((subdomain.clone(), pending.port));
+
+                                        // Register tunnel with web server for tracking
+                                        let register_req = RegisterTunnelRequest {
+                                            subdomain: subdomain.clone(),
+                                            user_id: user_id.clone(),
+                                            session_id: session_id.clone(),
+                                            requested_address: pending.address.clone(),
+                                            requested_port: pending.port,
+                                            server_port: 80,
+                                            client_ip: client_ip.clone(),
+                                        };
+                                        if let Err(e) = client.register_tunnel(&register_req).await {
+                                            warn!("Failed to register tunnel with web server: {}", e);
+                                        }
                                     }
                                     Err(e) => {
                                         error!("Failed to register tunnel: {}", e);
