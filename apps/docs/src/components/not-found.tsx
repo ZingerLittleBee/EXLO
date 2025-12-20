@@ -6,7 +6,7 @@ export function NotFound() {
     <HomeLayout
       className="justify-center py-32 text-center"
       nav={{
-        title: 'Tanstack Start'
+        title: 'fwd.rs'
       }}
     >
       <div className="flex flex-col items-center gap-4">
