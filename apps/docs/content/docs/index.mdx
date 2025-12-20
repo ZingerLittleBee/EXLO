@@ -1,12 +1,12 @@
 ---
-title: Open Tunnl
+title: FWD.RS
 description: 自托管的 SSH 反向隧道服务，ngrok/tunnl.gg 的私有化替代方案。
 icon: House
 ---
 
 import { Cards, Card } from 'fumadocs-ui/components/card'
 
-**Open Tunnl** 是一个为私有团队和 Homelab 设计的自托管 SSH 反向隧道服务。无需安装客户端，使用标准 `ssh -R` 命令即可将本地服务暴露到公网。
+**FWD.RS** 是一个为私有团队和 Homelab 设计的自托管 SSH 反向隧道服务。无需安装客户端，使用标准 `ssh -R` 命令即可将本地服务暴露到公网。
 
 ## 核心特性
 
@@ -32,11 +32,11 @@ import { Cards, Card } from 'fumadocs-ui/components/card'
 ## 快速一览
 
 ```bash
-# 连接到你的 Open Tunnl 服务器
-ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+# 连接到你的 FWD.RS 服务器
+ssh -N -R 80:localhost:3000 -p 2222 user@fwd.example.com
 
 # 浏览器打开认证链接完成 Device Flow
-# 认证成功后访问: https://your-subdomain.tunnl.example.com
+# 认证成功后访问: https://your-subdomain.fwd.example.com
 ```
 
 ## 下一步

@@ -1,12 +1,12 @@
 ---
 title: 部署概述
-description: Open Tunnl 生产环境部署架构与端口规划。
+description: FWD.RS 生产环境部署架构与端口规划。
 icon: Server
 ---
 
 ## 架构概览
 
-Open Tunnl 采用 **Sidecar 模式**，由两个容器协同工作：
+FWD.RS 采用 **Sidecar 模式**，由两个容器协同工作：
 
 ```mermaid
 graph TB
@@ -15,7 +15,7 @@ graph TB
         SSH[SSH 客户端]
     end
 
-    subgraph "Open Tunnl 集群"
+    subgraph "FWD.RS 集群"
         subgraph "Data Plane (Rust)"
             SSH_Server[":2222 SSH Server"]
             HTTP_Proxy[":8080 HTTP Proxy"]
@@ -42,7 +42,7 @@ graph TB
 | 端口 | 服务 | 暴露方式 | 说明 |
 |------|------|----------|------|
 | `:2222` | SSH Server | 公网 | 接受 `ssh -R` 连接 |
-| `:8080` | HTTP Proxy | 公网（通过反向代理） | 处理 `*.tunnl.example.com` 请求 |
+| `:8080` | HTTP Proxy | 公网（通过反向代理） | 处理 `*.fwd.example.com` 请求 |
 | `:3000` | Web Dashboard | 公网（通过反向代理） | 管理界面和认证 |
 | `:9090` | Management API | **仅内部** | 不可暴露到公网 |
 | `:5432` | PostgreSQL | **仅内部** | 数据库 |

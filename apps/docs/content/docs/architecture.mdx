@@ -1,12 +1,12 @@
 ---
 title: 系统架构
-description: 深入了解 Open Tunnl 的双平面架构设计。
+description: 深入了解 FWD.RS 的双平面架构设计。
 icon: Network
 ---
 
 ## 架构概览
 
-Open Tunnl 采用**双平面架构**，将流量处理与业务逻辑分离：
+FWD.RS 采用**双平面架构**，将流量处理与业务逻辑分离：
 
 ```mermaid
 flowchart TB
@@ -15,7 +15,7 @@ flowchart TB
         browser[用户浏览器]
     end
 
-    subgraph cluster["Open Tunnl"]
+    subgraph cluster["FWD.RS"]
         subgraph data["Data Plane (Rust)"]
             ssh[":2222 SSH Server"]
             proxy[":8080 HTTP Proxy"]
@@ -57,7 +57,7 @@ Web 管理层，负责：
 
 ## Virtual Bind 机制
 
-Open Tunnl 使用 **Virtual Bind** 替代传统的端口绑定：
+FWD.RS 使用 **Virtual Bind** 替代传统的端口绑定：
 
 ```mermaid
 sequenceDiagram
@@ -69,7 +69,7 @@ sequenceDiagram
 
     Client->>SSH: ssh -R 80:localhost:3000
     SSH->>Registry: 注册 subdomain → Client
-    SSH-->>Client: 分配 abc123.tunnl.example.com
+    SSH-->>Client: 分配 abc123.fwd.example.com
 
     User->>Proxy: GET abc123.tunnl.example.com
     Proxy->>Registry: 查找 abc123
@@ -79,7 +79,7 @@ sequenceDiagram
     Proxy-->>User: 返回响应
 ```
 
-传统 SSH 反向隧道会在服务器上绑定真实端口。Open Tunnl 通过子域名路由，实现：
+传统 SSH 反向隧道会在服务器上绑定真实端口。FWD.RS 通过子域名路由，实现：
 
 - **多租户隔离** - 不同用户使用独立子域名
 - **无端口冲突** - 所有隧道共用 `:8080`
@@ -92,7 +92,7 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant SSH as SSH 客户端
-    participant Server as Open Tunnl
+    participant Server as FWD.RS
     participant Browser as 浏览器
     participant DB as 数据库
 
