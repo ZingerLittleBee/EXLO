@@ -1,5 +1,5 @@
 {
-  "name": "fwd.rs",
+  "name": "exlo",
   "private": true,
   "type": "module",
   "workspaces": {
@@ -19,17 +19,17 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
-    "dev:web": "turbo -F @fwd.rs/web dev",
-    "dev:docs": "turbo -F @fwd.rs/docs dev",
-    "dev:landing": "turbo -F @fwd.rs/landing dev",
-    "db:push": "turbo -F @fwd.rs/db db:push",
-    "db:studio": "turbo -F @fwd.rs/db db:studio",
-    "db:generate": "turbo -F @fwd.rs/db db:generate",
-    "db:migrate": "turbo -F @fwd.rs/db db:migrate",
-    "db:start": "turbo -F @fwd.rs/db db:start",
-    "db:watch": "turbo -F @fwd.rs/db db:watch",
-    "db:stop": "turbo -F @fwd.rs/db db:stop",
-    "db:down": "turbo -F @fwd.rs/db db:down"
+    "dev:web": "turbo -F @exlo/web dev",
+    "dev:docs": "turbo -F @exlo/docs dev",
+    "dev:landing": "turbo -F @exlo/landing dev",
+    "db:push": "turbo -F @exlo/db db:push",
+    "db:studio": "turbo -F @exlo/db db:studio",
+    "db:generate": "turbo -F @exlo/db db:generate",
+    "db:migrate": "turbo -F @exlo/db db:migrate",
+    "db:start": "turbo -F @exlo/db db:start",
+    "db:watch": "turbo -F @exlo/db db:watch",
+    "db:stop": "turbo -F @exlo/db db:stop",
+    "db:down": "turbo -F @exlo/db db:down"
   },
   "dependencies": {
     "dotenv": "catalog:",

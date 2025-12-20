@@ -1,5 +1,5 @@
 {
-  "name": "@fwd.rs/db",
+  "name": "@exlo/db",
   "type": "module",
   "exports": {
     ".": {
@@ -23,7 +23,7 @@
     "drizzle-kit": "^0.31.8",
     "@types/pg": "^8.15.6",
     "typescript": "^5",
-    "@fwd.rs/config": "workspace:*"
+    "@exlo/config": "workspace:*"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.1",

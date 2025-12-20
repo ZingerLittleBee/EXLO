@@ -1,6 +1,6 @@
-import { auth } from '@fwd.rs/auth'
-import { count, db } from '@fwd.rs/db'
-import { user } from '@fwd.rs/db/schema/auth'
+import { auth } from '@exlo/auth'
+import { count, db } from '@exlo/db'
+import { user } from '@exlo/db/schema/auth'
 import { createServerFn } from '@tanstack/react-start'
 
 // Check if this is a first-run (no users exist in the database)

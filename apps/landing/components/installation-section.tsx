@@ -11,11 +11,11 @@ const installCommands = [
   },
   {
     title: "Docker",
-    command: "docker pull ghcr.io/fwd-rs/fwd.rs:latest",
+    command: "docker pull ghcr.io/ZingerLittleBee/EXLO:latest",
   },
   {
     title: "From Source",
-    command: "git clone https://github.com/fwd-rs/fwd.rs && cd fwd.rs && cargo build --release",
+    command: "git clone https://github.com/ZingerLittleBee/EXLO && cd EXLO && cargo build --release",
   },
 ]
 
@@ -73,7 +73,7 @@ export function InstallationSection() {
           <TerminalWindow title=".env.example">
             <pre className="text-xs sm:text-sm text-muted-foreground overflow-x-auto">
               {`# Server Configuration
-DOMAIN=fwd.rs
+DOMAIN=your.domain
 SSH_PORT=2222
 HTTP_PORT=80
 HTTPS_PORT=443
@@ -96,7 +96,7 @@ TLS_KEY_PATH=/etc/ssl/private/fwd.key`}
         {/* Documentation link */}
         <div className="text-center mt-12">
           <a
-            href="https://github.com/fwd-rs/fwd.rs/wiki"
+            href="https://github.com/ZingerLittleBee/EXLO/wiki"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"

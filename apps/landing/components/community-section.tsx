@@ -5,7 +5,7 @@ const communityLinks = [
     icon: Github,
     title: "GitHub",
     description: "Star the repo, report issues, and contribute code.",
-    href: "https://github.com/fwd-rs/fwd.rs",
+    href: "https://github.com/ZingerLittleBee/EXLO",
     cta: "[ VIEW REPO ]",
   },
   {
@@ -35,7 +35,7 @@ export function CommunitySection() {
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight terminal-glow">Join the Community</h2>
           <p className="text-muted-foreground text-sm mt-4 max-w-xl mx-auto">
-            Connect with developers who are building and using fwd.rs around the world.
+            Connect with developers who are building and using EXLO around the world.
           </p>
           <div className="w-32 h-px bg-border mx-auto mt-6" />
         </div>
@@ -69,7 +69,7 @@ export function CommunitySection() {
           </div>
           <p className="text-muted-foreground text-sm mb-6">Show your support by starring the repository on GitHub</p>
           <a
-            href="https://github.com/fwd-rs/fwd.rs"
+            href="https://github.com/ZingerLittleBee/EXLO"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block px-6 py-3 bg-primary text-primary-foreground font-bold uppercase tracking-wider hover:bg-primary/90 transition-colors text-sm"

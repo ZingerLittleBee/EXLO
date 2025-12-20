@@ -1,4 +1,4 @@
-import { auth } from '@fwd.rs/auth'
+import { auth } from '@exlo/auth'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/api/auth/$')({

@@ -10,7 +10,7 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'fwd.rs - Self-Hosted SSH Reverse Tunnel',
+  title: 'EXLO - Self-Hosted SSH Reverse Tunnel',
   description:
     'The self-hosted, clientless alternative to ngrok. Expose localhost to the internet securely with full control over your data.',
   keywords: ['ssh', 'tunnel', 'reverse proxy', 'ngrok alternative', 'self-hosted', 'open source']

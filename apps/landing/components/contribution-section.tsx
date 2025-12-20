@@ -39,10 +39,10 @@ export function ContributionSection() {
             </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight terminal-glow">
-            Contribute to fwd.rs
+            Contribute to EXLO
           </h2>
           <p className="text-muted-foreground text-sm mt-4 max-w-xl mx-auto">
-            Open source thrives on community contributions. Here&apos;s how you can help make fwd.rs better.
+            Open source thrives on community contributions. Here&apos;s how you can help make EXLO better.
           </p>
           <div className="w-32 h-px bg-border mx-auto mt-6" />
         </div>
@@ -80,7 +80,7 @@ export function ContributionSection() {
           </div>
           <div className="mt-6 pt-4 border-t border-border">
             <a
-              href="https://github.com/fwd-rs/fwd.rs/blob/main/CONTRIBUTING.md"
+              href="https://github.com/ZingerLittleBee/EXLO/blob/main/CONTRIBUTING.md"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors text-xs uppercase tracking-wider"

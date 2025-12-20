@@ -1,5 +1,5 @@
-import { db, eq } from '@fwd.rs/db'
-import { tunnels } from '@fwd.rs/db/schema/index'
+import { db, eq } from '@exlo/db'
+import { tunnels } from '@exlo/db/schema/index'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/middleware/auth'
 
