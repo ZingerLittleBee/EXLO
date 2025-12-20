@@ -1,5 +1,5 @@
 {
-  "name": "@fwd.rs/web",
+  "name": "@exlo/web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,8 +8,8 @@
     "dev": "vite dev"
   },
   "dependencies": {
-    "@fwd.rs/auth": "workspace:*",
-    "@fwd.rs/db": "workspace:*",
+    "@exlo/auth": "workspace:*",
+    "@exlo/db": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.15",
     "@tailwindcss/vite": "^4.1.8",
     "@tanstack/react-form": "^1.23.5",
@@ -46,6 +46,6 @@
     "web-vitals": "^5.0.3",
     "@tanstack/react-query-devtools": "^5.91.1",
     "typescript": "^5",
-    "@fwd.rs/config": "workspace:*"
+    "@exlo/config": "workspace:*"
   }
 }

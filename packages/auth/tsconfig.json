@@ -1,5 +1,5 @@
 {
-  "extends": "@fwd.rs/config/tsconfig.base.json",
+  "extends": "@exlo/config/tsconfig.base.json",
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,

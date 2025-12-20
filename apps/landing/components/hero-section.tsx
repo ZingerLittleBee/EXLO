@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { TerminalWindow } from "./terminal-window"
 
 const terminalLines = [
-  { text: "$ ssh -p 2222 -R 80:localhost:3000 fwd.rs", delay: 0 },
+  { text: "$ ssh -p 2222 -R 80:localhost:3000 your.domain", delay: 0 },
   { text: "> Authenticating...", delay: 1500 },
-  { text: "> Please visit https://fwd.rs/activate?code=XK9L", delay: 2500 },
-  { text: "> Tunnel established: https://demo.fwd.rs", delay: 4000 },
+  { text: "> Please visit https://your.domain/activate?code=XK9L", delay: 2500 },
+  { text: "> Tunnel established: https://xxx.your.domain", delay: 4000 },
 ]
 
 export function HeroSection() {
@@ -72,7 +72,7 @@ export function HeroSection() {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
           <a
-            href="https://github.com/fwd-rs/fwd.rs"
+            href="https://github.com/ZingerLittleBee/EXLO"
             target="_blank"
             rel="noopener noreferrer"
             className="px-6 py-3 bg-primary text-primary-foreground font-bold uppercase tracking-wider hover:bg-primary/90 transition-colors text-sm"

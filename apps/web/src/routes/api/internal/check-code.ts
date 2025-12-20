@@ -1,5 +1,5 @@
-import { db, eq } from '@fwd.rs/db'
-import { activationCodes } from '@fwd.rs/db/schema/index'
+import { db, eq } from '@exlo/db'
+import { activationCodes } from '@exlo/db/schema/index'
 import { createFileRoute } from '@tanstack/react-router'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || 'dev-secret'

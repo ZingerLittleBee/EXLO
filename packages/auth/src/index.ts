@@ -1,5 +1,5 @@
-import { db } from '@fwd.rs/db'
-import * as schema from '@fwd.rs/db/schema/auth'
+import { db } from '@exlo/db'
+import * as schema from '@exlo/db/schema/auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins'

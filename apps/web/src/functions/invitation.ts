@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
-import { auth } from '@fwd.rs/auth'
-import { db, eq } from '@fwd.rs/db'
-import { invitations } from '@fwd.rs/db/schema/invitation'
+import { auth } from '@exlo/auth'
+import { db, eq } from '@exlo/db'
+import { invitations } from '@exlo/db/schema/invitation'
 import { createServerFn } from '@tanstack/react-start'
 import { authMiddleware } from '@/middleware/auth'
 

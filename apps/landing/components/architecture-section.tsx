@@ -78,7 +78,7 @@ export function ArchitectureSection() {
        │                                         │
        └─────────── localhost:3000 ◀─────────────┘
                     EXPOSED AS
-                 https://demo.fwd.rs
+                 https://demo.youdomain
 `}
           </pre>
         </div>

@@ -1,5 +1,5 @@
-import { db } from '@fwd.rs/db'
-import { tunnels } from '@fwd.rs/db/schema/index'
+import { db } from '@exlo/db'
+import { tunnels } from '@exlo/db/schema/index'
 import { createFileRoute } from '@tanstack/react-router'
 
 // Internal API secret for Rust server communication

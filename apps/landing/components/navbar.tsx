@@ -25,7 +25,7 @@ export function Navbar() {
               />
             </svg>
 
-            <span className="font-bold text-foreground text-lg uppercase tracking-tight">fwd.rs</span>
+            <span className="font-bold text-foreground text-lg uppercase tracking-tight">EXLO</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -44,7 +44,7 @@ export function Navbar() {
             </Link>
             <Link
               className="text-muted-foreground text-sm uppercase tracking-wider transition-colors hover:text-foreground"
-              href="https://github.com/fwd-rs/fwd.rs"
+              href="https://github.com/ZingerLittleBee/EXLO"
               target="_blank"
             >
               GitHub
@@ -82,7 +82,7 @@ export function Navbar() {
             </Link>
             <Link
               className="block text-muted-foreground text-sm uppercase tracking-wider hover:text-foreground"
-              href="https://github.com/fwd-rs/fwd.rs"
+              href="https://github.com/ZingerLittleBee/EXLO"
               target="_blank"
             >
               {'>'} GitHub

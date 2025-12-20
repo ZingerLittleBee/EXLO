@@ -1,4 +1,4 @@
-import { auth } from '@fwd.rs/auth'
+import { auth } from '@exlo/auth'
 import { createMiddleware } from '@tanstack/react-start'
 
 export const authMiddleware = createMiddleware().server(async ({ next, request }) => {
