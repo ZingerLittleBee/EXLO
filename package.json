@@ -21,6 +21,7 @@
     "check-types": "turbo check-types",
     "dev:web": "turbo -F @fwd.rs/web dev",
     "dev:docs": "turbo -F @fwd.rs/docs dev",
+    "dev:landing": "turbo -F @fwd.rs/landing dev",
     "db:push": "turbo -F @fwd.rs/db db:push",
     "db:studio": "turbo -F @fwd.rs/db db:studio",
     "db:generate": "turbo -F @fwd.rs/db db:generate",
