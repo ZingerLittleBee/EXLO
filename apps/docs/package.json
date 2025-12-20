@@ -1,5 +1,5 @@
 {
-  "name": "fumadocs",
+  "name": "@fwd.rs/docs",
   "private": true,
   "sideEffects": false,
   "type": "module",
