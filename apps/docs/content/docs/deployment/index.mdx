@@ -4,6 +4,8 @@ description: FWD.RS 生产环境部署架构与端口规划。
 icon: Server
 ---
 
+import { Cards, Card } from 'fumadocs-ui/components/card'
+
 ## 架构概览
 
 FWD.RS 采用 **Sidecar 模式**，由两个容器协同工作：
@@ -49,7 +51,3 @@ graph TB
 
 > [!CAUTION]
 > `:9090` Management API **禁止**暴露到公网！它允许终止任意连接，无需认证。
-
-## 下一步
-
-- [Docker Compose 部署](/docs/deployment/docker-compose) - 完整的部署配置
