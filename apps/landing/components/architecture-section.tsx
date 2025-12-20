@@ -1,73 +1,73 @@
-import { Terminal, Server, Zap, ArrowRight } from "lucide-react"
+import { ArrowRight, Server, Terminal, Zap } from 'lucide-react'
 
 const steps = [
   {
     icon: Terminal,
-    step: "01",
-    title: "Terminal",
-    description: "User runs ssh -R from any machine with OpenSSH installed.",
+    step: '01',
+    title: 'Terminal',
+    description: 'User runs ssh -R from any machine with OpenSSH installed.'
   },
   {
     icon: Server,
-    step: "02",
-    title: "Gatekeeper",
-    description: "Node.js web server initiates device flow authentication.",
+    step: '02',
+    title: 'Gatekeeper',
+    description: 'Node.js web server initiates device flow authentication.'
   },
   {
     icon: Zap,
-    step: "03",
-    title: "Tunnel",
-    description: "Rust server establishes high-performance stream connection.",
-  },
+    step: '03',
+    title: 'Tunnel',
+    description: 'Rust server establishes high-performance stream connection.'
+  }
 ]
 
 export function ArchitectureSection() {
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border bg-background/50">
-      <div className="max-w-6xl mx-auto">
+    <section className="border-border border-t bg-background/50 px-4 py-20 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
         {/* Section header */}
-        <div className="text-center mb-16">
-          <div className="inline-block border border-border px-4 py-2 mb-6">
-            <span className="text-xs text-muted-foreground uppercase tracking-widest">$ ./explain --architecture</span>
+        <div className="mb-16 text-center">
+          <div className="mb-6 inline-block border border-border px-4 py-2">
+            <span className="text-muted-foreground text-xs uppercase tracking-widest">$ ./explain --architecture</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight terminal-glow">How It Works</h2>
-          <div className="w-32 h-px bg-border mx-auto mt-6" />
+          <h2 className="terminal-glow font-bold text-2xl uppercase tracking-tight sm:text-3xl">How It Works</h2>
+          <div className="mx-auto mt-6 h-px w-32 bg-border" />
         </div>
 
         {/* Architecture diagram */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+        <div className="relative grid grid-cols-1 gap-8 md:grid-cols-3">
           {steps.map((step, index) => (
-            <div key={index} className="relative">
+            <div className="relative" key={index}>
               {/* Connection arrow (desktop only) */}
               {index < steps.length - 1 && (
-                <div className="hidden md:block absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
-                  <ArrowRight className="w-8 h-8 text-primary terminal-glow" />
+                <div className="absolute top-1/2 -right-4 z-10 hidden -translate-y-1/2 transform md:block">
+                  <ArrowRight className="terminal-glow h-8 w-8 text-primary" />
                 </div>
               )}
 
-              <div className="border border-border p-6 h-full">
+              <div className="h-full border border-border p-6">
                 {/* Step number */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xs text-muted-foreground">STEP {step.step}</span>
-                  <step.icon className="w-6 h-6 text-primary" strokeWidth={2} />
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-muted-foreground text-xs">STEP {step.step}</span>
+                  <step.icon className="h-6 w-6 text-primary" strokeWidth={2} />
                 </div>
 
                 {/* Title */}
-                <h3 className="text-lg font-bold uppercase tracking-wider mb-3 terminal-glow">{step.title}</h3>
+                <h3 className="terminal-glow mb-3 font-bold text-lg uppercase tracking-wider">{step.title}</h3>
 
                 {/* Separator */}
-                <div className="text-muted-foreground text-xs mb-3">================</div>
+                <div className="mb-3 text-muted-foreground text-xs">================</div>
 
                 {/* Description */}
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
               </div>
             </div>
           ))}
         </div>
 
         {/* ASCII art diagram */}
-        <div className="mt-12 border border-border p-6 overflow-x-auto">
-          <pre className="text-xs sm:text-sm text-muted-foreground whitespace-pre text-center">
+        <div className="mt-12 overflow-x-auto border border-border p-6">
+          <pre className="whitespace-pre text-center text-muted-foreground text-xs sm:text-sm">
             {`
 ┌─────────────┐      ┌─────────────┐      ┌─────────────┐
 │  YOUR DEV   │      │  GATEKEEPER │      │   TUNNEL    │
