@@ -1,84 +1,95 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Menu, X } from "lucide-react"
-import Link from "next/link"
+import { Menu, X } from 'lucide-react'
+import Link from 'next/link'
+import { useState } from 'react'
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 border-b border-border bg-background/95 backdrop-blur">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <nav className="fixed top-0 right-0 left-0 z-40 border-border border-b bg-background/95 backdrop-blur">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 terminal-glow hover-glitch">
-            <span className="w-3 h-3 bg-primary animate-pulse" />
-            <span className="text-lg font-bold tracking-tight text-foreground uppercase">fwd.rs</span>
+          <Link className="terminal-glow hover-glitch flex items-center gap-2" href="/">
+            {/* <Image alt="logo" className="stroke-red-500" height={28} src="/logo.svg" width={28} /> */}
+
+            <svg className="size-7" height="64" viewBox="0 0 16 16" width="64" xmlns="http://www.w3.org/2000/svg">
+              <title>logo</title>
+              <path
+                clipRule="evenodd"
+                d="M4.256 6.041a3.75 3.75 0 0 1 7.348-.832l.152.528l.55.014a2.25 2.25 0 0 1 1.069 4.198a.75.75 0 1 0 .75 1.299a3.75 3.75 0 0 0-1.25-6.946a5.251 5.251 0 0 0-10.035.974a3.25 3.25 0 0 0-.896 6.2a.75.75 0 1 0 .603-1.373A1.75 1.75 0 0 1 3.25 6.75h.967zM6.22 7.22a.75.75 0 0 1 1.06 0l1.75 1.75l.53.53l-.53.53l-1.75 1.75a.75.75 0 0 1-1.06-1.06L7.44 9.5L6.22 8.28a.75.75 0 0 1 0-1.06M8 13.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75"
+                fill="currentColor"
+                fillRule="evenodd"
+              />
+            </svg>
+
+            <span className="font-bold text-foreground text-lg uppercase tracking-tight">fwd.rs</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden items-center gap-6 md:flex">
             <Link
+              className="text-muted-foreground text-sm uppercase tracking-wider transition-colors hover:text-foreground"
               href="#features"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
             >
               Features
             </Link>
             <Link
+              className="text-muted-foreground text-sm uppercase tracking-wider transition-colors hover:text-foreground"
               href="#docs"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
             >
               Documentation
             </Link>
             <Link
+              className="text-muted-foreground text-sm uppercase tracking-wider transition-colors hover:text-foreground"
               href="https://github.com/fwd-rs/fwd.rs"
               target="_blank"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
             >
               GitHub
             </Link>
             <Link
+              className="border border-primary px-4 py-2 text-primary text-sm uppercase tracking-wider transition-colors hover:bg-primary hover:text-primary-foreground"
               href="#console"
-              className="px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors text-sm uppercase tracking-wider"
             >
               [ Console Login ]
             </Link>
           </div>
 
           {/* Mobile menu button */}
-          <button onClick={() => setIsOpen(!isOpen)} className="md:hidden text-foreground p-2">
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          <button className="p-2 text-foreground md:hidden" onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden border-t border-border py-4 space-y-4">
+          <div className="space-y-4 border-border border-t py-4 md:hidden">
             <Link
+              className="block text-muted-foreground text-sm uppercase tracking-wider hover:text-foreground"
               href="#features"
-              className="block text-sm text-muted-foreground hover:text-foreground uppercase tracking-wider"
               onClick={() => setIsOpen(false)}
             >
-              {">"} Features
+              {'>'} Features
             </Link>
             <Link
+              className="block text-muted-foreground text-sm uppercase tracking-wider hover:text-foreground"
               href="#docs"
-              className="block text-sm text-muted-foreground hover:text-foreground uppercase tracking-wider"
               onClick={() => setIsOpen(false)}
             >
-              {">"} Documentation
+              {'>'} Documentation
             </Link>
             <Link
+              className="block text-muted-foreground text-sm uppercase tracking-wider hover:text-foreground"
               href="https://github.com/fwd-rs/fwd.rs"
               target="_blank"
-              className="block text-sm text-muted-foreground hover:text-foreground uppercase tracking-wider"
             >
-              {">"} GitHub
+              {'>'} GitHub
             </Link>
             <Link
+              className="block w-fit border border-primary px-4 py-2 text-primary text-sm uppercase tracking-wider transition-colors hover:bg-primary hover:text-primary-foreground"
               href="#console"
-              className="block px-4 py-2 border border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors text-sm uppercase tracking-wider w-fit"
             >
               [ Console Login ]
             </Link>

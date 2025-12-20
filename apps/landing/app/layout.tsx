@@ -23,6 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html className="dark" lang="en">
+      <link href="/favicon.ico" rel="icon" />
       <body className={`${jetbrainsMono.className} antialiased`}>
         {children}
         <Analytics />
