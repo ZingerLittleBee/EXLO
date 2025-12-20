@@ -1,0 +1,11 @@
+{
+  "title": "Open Tunnl",
+  "pages": [
+    "index",
+    "quick-start",
+    "deployment",
+    "architecture",
+    "api-reference",
+    "troubleshooting"
+  ]
+}
