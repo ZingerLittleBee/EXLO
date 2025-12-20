@@ -4,15 +4,17 @@ export function Footer() {
   return (
     <footer className="border-border border-t px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8 text-center">
+        <div className="mb-12 text-center">
           <pre className="inline-block text-left text-muted-foreground text-xs">
-            {`
-  __             _                
- / _|_      ____| |  _ __ ___ 
-| |_\\ \\ /\\ / / _\` | | '__/ __|
-|  _|\\ V  V / (_| |_| |  \\__ \\
-|_|   \\_/\\_/ \\__,_(_)_|  |___/
-                              
+            {/* https://patorjk.com/software/taag/#p=display&f=Big+Money-nw&t=FWD.RS&x=none&v=4&h=4&w=80&we=false */}
+            {`$$$$$$$$\\ $$\\      $$\\ $$$$$$$\\      $$$$$$$\\   $$$$$$\\  
+$$  _____|$$ | $\\  $$ |$$  __$$\\     $$  __$$\\ $$  __$$\\ 
+$$ |      $$ |$$$\\ $$ |$$ |  $$ |    $$ |  $$ |$$ /  \\__|
+$$$$$\\    $$ $$ $$\\$$ |$$ |  $$ |    $$$$$$$  |\\$$$$$$\\  
+$$  __|   $$$$  _$$$$ |$$ |  $$ |    $$  __$$<  \\____$$\\ 
+$$ |      $$$  / \\$$$ |$$ |  $$ |    $$ |  $$ |$$\\   $$ |
+$$ |      $$  /   \\$$ |$$$$$$$  |$$\\ $$ |  $$ |\\$$$$$$  |
+\\__|      \\__/     \\__|\\_______/ \\__|\\__|  \\__| \\______/ 
 `}
           </pre>
         </div>
