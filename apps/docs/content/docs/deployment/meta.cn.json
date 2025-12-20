@@ -1,4 +1,5 @@
 {
-  "title": "Deployment Guide",
+  "title": "部署指南",
   "pages": ["index", "docker-compose"]
 }
+

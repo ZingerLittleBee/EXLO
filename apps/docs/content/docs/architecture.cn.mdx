@@ -1,0 +1,128 @@
+---
+title: 系统架构
+description: 深入了解 EXLO 的双平面架构设计。
+icon: Network
+---
+
+## 架构概览
+
+EXLO 采用**双平面架构**，将流量处理与业务逻辑分离：
+
+```mermaid
+flowchart TB
+    subgraph public["公网"]
+        client[SSH 客户端]
+        browser[用户浏览器]
+    end
+
+    subgraph cluster["EXLO"]
+        subgraph data["Data Plane (Rust)"]
+            ssh[":2222 SSH Server"]
+            proxy[":8080 HTTP Proxy"]
+            mgmt[":9090 Management API"]
+        end
+
+        subgraph control["Control Plane (Node.js)"]
+            web[":3000 Web Dashboard"]
+        end
+
+        db[(PostgreSQL)]
+    end
+
+    client --> ssh
+    browser --> proxy
+    browser --> web
+    web --> mgmt
+    ssh --> db
+    web --> db
+```
+
+## 组件说明
+
+### Data Plane (Rust)
+
+高性能的流量处理层，负责：
+
+- **SSH Server** (`:2222`) - 接收 `ssh -R` 连接请求
+- **HTTP Proxy** (`:8080`) - 将请求路由到对应的隧道
+- **Management API** (`:9090`) - 内部管理接口
+
+### Control Plane (Node.js)
+
+Web 管理层，负责：
+
+- **用户认证** - Device Flow、邀请链接
+- **隧道监控** - 实时显示活动连接
+- **管理操作** - 终止连接、访问日志
+
+## Virtual Bind 机制
+
+EXLO 使用 **Virtual Bind** 替代传统的端口绑定：
+
+```mermaid
+sequenceDiagram
+    participant Client as SSH 客户端
+    participant SSH as SSH Server
+    participant Registry as Tunnel Registry
+    participant Proxy as HTTP Proxy
+    participant User as 用户浏览器
+
+    Client->>SSH: ssh -R 80:localhost:3000
+    SSH->>Registry: 注册 subdomain → Client
+    SSH-->>Client: 分配 abc123.your.domain
+
+    User->>Proxy: GET abc123.tunnl.example.com
+    Proxy->>Registry: 查找 abc123
+    Registry-->>Proxy: 返回 Client 连接
+    Proxy->>Client: 转发请求（via SSH channel）
+    Client-->>Proxy: 返回响应
+    Proxy-->>User: 返回响应
+```
+
+传统 SSH 反向隧道会在服务器上绑定真实端口。EXLO 通过子域名路由，实现：
+
+- **多租户隔离** - 不同用户使用独立子域名
+- **无端口冲突** - 所有隧道共用 `:8080`
+- **动态分配** - 自动生成唯一子域名
+
+## Device Flow 认证
+
+为支持无头环境（CI/CD、服务器），采用 OAuth 2.0 Device Flow：
+
+```mermaid
+sequenceDiagram
+    participant SSH as SSH 客户端
+    participant Server as EXLO
+    participant Browser as 浏览器
+    participant DB as 数据库
+
+    SSH->>Server: 建立 SSH 连接
+    Server->>DB: 创建 device_code
+    Server-->>SSH: 显示认证链接 + Code
+
+    Browser->>Server: 打开 /activate
+    Browser->>Server: 输入 Code
+    Server->>DB: 验证并标记完成
+
+    loop 轮询
+        SSH->>Server: 检查认证状态
+        Server->>DB: 查询状态
+    end
+
+    Server-->>SSH: 认证成功
+    SSH->>Server: 建立隧道
+```
+
+## 端口与协议
+
+| 端口 | 协议 | 方向 | 说明 |
+|------|------|------|------|
+| `:2222` | SSH | 入站 | 隧道连接入口 |
+| `:8080` | HTTP/HTTPS | 入站 | 隧道流量代理 |
+| `:3000` | HTTP | 入站 | Web Dashboard |
+| `:9090` | HTTP | **仅内部** | Management API |
+| `:5432` | PostgreSQL | **仅内部** | 数据库 |
+
+> [!CAUTION]
+> `:9090` Management API 允许无认证终止任意连接，**禁止**暴露到公网！
+

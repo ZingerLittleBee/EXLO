@@ -1,40 +1,40 @@
 ---
-title: 介绍
-description: 自托管的 SSH 反向隧道服务，ngrok/tunnl.gg 的私有化替代方案。
+title: Introduction
+description: A self-hosted SSH reverse tunnel service, a private alternative to ngrok/tunnl.gg.
 icon: House
 ---
 
 import { Cards, Card } from 'fumadocs-ui/components/card'
 
-**EXLO** 是一个为私有团队和 Homelab 设计的自托管 SSH 反向隧道服务。无需安装客户端，使用标准 `ssh -R` 命令即可将本地服务暴露到公网。
+**EXLO** is a self-hosted SSH reverse tunnel service designed for private teams and Homelabs. No client installation required - use the standard `ssh -R` command to expose your local services to the public internet.
 
-## 核心特性
+## Core Features
 
 <Cards>
   <Card
-    title="🔒 自托管 & 私有"
-    description="完全部署在你自己的基础设施上，禁止公开注册，仅通过邀请链接添加用户。"
+    title="🔒 Self-Hosted & Private"
+    description="Fully deployed on your own infrastructure. Public registration is disabled - add users only through invitation links."
   />
   <Card
-    title="⚡ 无需客户端"
-    description="使用标准 SSH 客户端连接，无需安装任何额外软件。"
+    title="⚡ No Client Required"
+    description="Connect using standard SSH clients without installing any additional software."
   />
   <Card
-    title="🛡️ 安全优先"
-    description="Web 仪表盘实时监控所有隧道，一键终止可疑连接。"
+    title="🛡️ Security First"
+    description="Web dashboard for real-time monitoring of all tunnels. Terminate suspicious connections with one click."
   />
   <Card
-    title="🔑 Device Flow 认证"
-    description="通过浏览器完成身份验证，支持无头环境的安全认证。"
+    title="🔑 Device Flow Authentication"
+    description="Complete authentication through browser. Supports secure authentication in headless environments."
   />
 </Cards>
 
-## 快速一览
+## Quick Overview
 
 ```bash
-# 连接到你的 EXLO 服务器
+# Connect to your EXLO server
 ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
 
-# 浏览器打开认证链接完成 Device Flow
-# 认证成功后访问: https://your-subdomain.your.domain
+# Open the authentication link in your browser for Device Flow
+# After authentication, visit: https://your-subdomain.your.domain
 ```
