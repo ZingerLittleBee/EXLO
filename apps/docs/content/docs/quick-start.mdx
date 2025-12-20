@@ -1,6 +1,6 @@
 ---
 title: 快速开始
-description: 5 分钟内完成 FWD.RS 的部署和首次连接。
+description: 5 分钟内完成 EXLO 的部署和首次连接。
 icon: Zap
 ---
 
@@ -9,7 +9,7 @@ import { Cards, Card } from 'fumadocs-ui/components/card'
 ## 环境要求
 
 - Docker & Docker Compose
-- 一个公网域名（如 `fwd.example.com`）
+- 一个公网域名（如 `your.domain`）
 - 支持通配符 DNS 或子域名配置
 
 ## 一键启动
@@ -34,7 +34,7 @@ docker compose up -d
 ### 1. 创建 SSH 隧道
 
 ```bash
-ssh -N -R 80:localhost:3000 -p 2222 user@fwd.example.com
+ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
 ```
 
 参数说明：
@@ -50,7 +50,7 @@ ssh -N -R 80:localhost:3000 -p 2222 user@fwd.example.com
 ╭──────────────────────────────────────────────────╮
 │  🔐 Device Activation Required                   │
 │                                                  │
-│  Visit: https://fwd.example.com/activate         │
+│  Visit: https://your.domain/activate         │
 │  Code:  ABCD-1234                                │
 ╰──────────────────────────────────────────────────╯
 ```
@@ -62,7 +62,7 @@ ssh -N -R 80:localhost:3000 -p 2222 user@fwd.example.com
 认证成功后，你的本地服务将通过分配的子域名访问：
 
 ```
-https://your-subdomain.fwd.example.com
+https://your-subdomain.your.domain
 ```
 
 ## 断开连接
