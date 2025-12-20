@@ -1,22 +1,22 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { Copy, Check } from "lucide-react"
-import { TerminalWindow } from "./terminal-window"
+import { Check, Copy } from 'lucide-react'
+import { useState } from 'react'
+import { TerminalWindow } from './terminal-window'
 
 const installCommands = [
   {
-    title: "Docker Compose",
-    command: "docker-compose up -d",
+    title: 'Docker Compose',
+    command: 'docker-compose up -d'
   },
   {
-    title: "Docker",
-    command: "docker pull ghcr.io/ZingerLittleBee/EXLO:latest",
+    title: 'Docker',
+    command: 'docker pull ghcr.io/ZingerLittleBee/EXLO:latest'
   },
   {
-    title: "From Source",
-    command: "git clone https://github.com/ZingerLittleBee/EXLO && cd EXLO && cargo build --release",
-  },
+    title: 'From Source',
+    command: 'git clone https://github.com/ZingerLittleBee/EXLO && cd EXLO && cargo build --release'
+  }
 ]
 
 export function InstallationSection() {
@@ -29,40 +29,40 @@ export function InstallationSection() {
   }
 
   return (
-    <section id="docs" className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border">
-      <div className="max-w-4xl mx-auto">
+    <section className="border-border border-t px-4 py-20 sm:px-6 lg:px-8" id="docs">
+      <div className="mx-auto max-w-4xl">
         {/* Section header */}
-        <div className="text-center mb-16">
-          <div className="inline-block border border-border px-4 py-2 mb-6">
-            <span className="text-xs text-muted-foreground uppercase tracking-widest">$ sudo ./install.sh</span>
+        <div className="mb-16 text-center">
+          <div className="mb-6 inline-block border border-border px-4 py-2">
+            <span className="text-muted-foreground text-xs uppercase tracking-widest">$ sudo ./install.sh</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight terminal-glow">
+          <h2 className="terminal-glow font-bold text-2xl uppercase tracking-tight sm:text-3xl">
             Self-Host in Minutes
           </h2>
-          <p className="text-muted-foreground text-sm mt-4 max-w-xl mx-auto">
+          <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-sm">
             Deploy your own tunnel server with Docker. Full control, zero dependencies on external services.
           </p>
-          <div className="w-32 h-px bg-border mx-auto mt-6" />
+          <div className="mx-auto mt-6 h-px w-32 bg-border" />
         </div>
 
         {/* Installation options */}
         <div className="space-y-6">
           {installCommands.map((item, index) => (
-            <div key={index} className="border border-border">
+            <div className="border border-border" key={index}>
               {/* Title bar */}
-              <div className="border-b border-border px-4 py-2 flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase tracking-widest">{item.title}</span>
+              <div className="flex items-center justify-between border-border border-b px-4 py-2">
+                <span className="text-muted-foreground text-xs uppercase tracking-widest">{item.title}</span>
                 <button
-                  onClick={() => copyToClipboard(item.command, index)}
-                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
                   aria-label="Copy command"
+                  className="p-1 text-muted-foreground transition-colors hover:text-foreground"
+                  onClick={() => copyToClipboard(item.command, index)}
                 >
-                  {copied === index ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+                  {copied === index ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                 </button>
               </div>
               {/* Command */}
-              <div className="p-4 overflow-x-auto">
-                <code className="text-sm text-foreground terminal-glow">$ {item.command}</code>
+              <div className="overflow-x-auto p-4">
+                <code className="terminal-glow text-foreground text-sm">$ {item.command}</code>
               </div>
             </div>
           ))}
@@ -71,7 +71,7 @@ export function InstallationSection() {
         {/* Environment config example */}
         <div className="mt-12">
           <TerminalWindow title=".env.example">
-            <pre className="text-xs sm:text-sm text-muted-foreground overflow-x-auto">
+            <pre className="overflow-x-auto text-muted-foreground text-xs sm:text-sm">
               {`# Server Configuration
 DOMAIN=your.domain
 SSH_PORT=2222
@@ -94,16 +94,16 @@ TLS_KEY_PATH=/etc/ssl/private/fwd.key`}
         </div>
 
         {/* Documentation link */}
-        <div className="text-center mt-12">
+        <div className="mt-12 text-center">
           <a
+            className="inline-flex items-center gap-2 text-muted-foreground text-sm transition-colors hover:text-foreground"
             href="https://github.com/ZingerLittleBee/EXLO/wiki"
-            target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            target="_blank"
           >
-            <span>{">"}</span>
+            <span>{'>'}</span>
             <span className="uppercase tracking-wider">View Full Documentation</span>
-            <span>{"--help"}</span>
+            <span>{'--help'}</span>
           </a>
         </div>
       </div>
