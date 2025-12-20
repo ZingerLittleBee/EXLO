@@ -14,7 +14,7 @@ version: '3.8'
 
 services:
   tunnl:
-    image: ghcr.io/your-org/open-tunnl:latest
+    image: ghcr.io/ZingerLittleBee/EXLO:latest
     ports:
       - "2222:2222"   # SSH Server
       - "8080:8080"   # HTTP Proxy
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
 
   web:
-    image: ghcr.io/your-org/open-tunnl-web:latest
+    image: ghcr.io/ZingerLittleBee/EXLO-web:latest
     ports:
       - "3000:3000"
     environment:
@@ -151,7 +151,7 @@ services:
       - ./letsencrypt:/letsencrypt
 
   tunnl:
-    image: ghcr.io/your-org/open-tunnl:latest
+    image: ghcr.io/ZingerLittleBee/EXLO:latest
     ports:
       - "2222:2222"   # SSH Server (直接暴露)
     labels:
@@ -170,7 +170,7 @@ services:
       - AUTH_API_URL=http://web:3000
 
   web:
-    image: ghcr.io/your-org/open-tunnl-web:latest
+    image: ghcr.io/ZingerLittleBee/EXLO-web:latest
     labels:
       - "traefik.enable=true"
       # Web Dashboard
