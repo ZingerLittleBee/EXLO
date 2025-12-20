@@ -6,7 +6,7 @@ export function Footer() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-12 text-center">
           <pre className="inline-block text-left text-muted-foreground text-xs">
-            {/* https://patorjk.com/software/taag/#p=display&f=Big+Money-nw&t=FWD.RS&x=none&v=4&h=4&w=80&we=false */}
+            {/* https://patorjk.com/software/taag/#p=display&f=Big+Money-nw&t=EXLO&x=none&v=4&h=4&w=80&we=false */}
             {`$$$$$$$$\\ $$\\   $$\\ $$\\       $$$$$$\\  
 $$  _____|$$ |  $$ |$$ |     $$  __$$\\ 
 $$ |      \\$$\\ $$  |$$ |     $$ /  $$ |
@@ -19,7 +19,6 @@ $$$$$$$$\\ $$ /  $$ |$$$$$$$$\\ $$$$$$  |
           </pre>
         </div>
 
-        {/* Footer links - Updated all URLs from open-tunnl to fwd-rs */}
         <div className="mb-12 grid grid-cols-2 gap-8 md:grid-cols-4">
           <div>
             <h4 className="mb-4 font-bold text-xs uppercase tracking-wider">Project</h4>
@@ -170,10 +169,9 @@ $$$$$$$$\\ $$ /  $$ |$$$$$$$$\\ $$$$$$  |
           </div>
         </div>
 
-        {/* Terminal prompt - Updated prompt from open-tunnl to EXLO */}
         <div className="mt-8 text-center">
           <code className="text-muted-foreground text-xs">
-            user@youdomain:~$ exit <span className="animate-blink">█</span>
+            user@exlo:~$ exit <span className="animate-blink">█</span>
           </code>
         </div>
       </div>
