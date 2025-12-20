@@ -1,0 +1,230 @@
+---
+title: Docker Compose 部署
+description: 使用 Docker Compose 一键部署 FWD.RS 完整服务栈。
+icon: Box
+---
+
+## 完整配置
+
+创建 `docker-compose.yml` 文件：
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+
+services:
+  tunnl:
+    image: ghcr.io/your-org/open-tunnl:latest
+    ports:
+      - "2222:2222"   # SSH Server
+      - "8080:8080"   # HTTP Proxy
+    volumes:
+      - ./data/server_key.pem:/app/server_key.pem
+    environment:
+      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
+      - BASE_DOMAIN=tunnl.example.com
+      - AUTH_API_URL=http://web:3000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    image: ghcr.io/your-org/open-tunnl-web:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
+      - TUNNL_API_URL=http://tunnl:9090
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=tunnl
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=tunnl
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tunnl"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+```
+
+## 环境变量
+
+### Data Plane (tunnl)
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `DATABASE_URL` | PostgreSQL 连接字符串 | `postgres://user:pass@host:5432/db` |
+| `BASE_DOMAIN` | 隧道基础域名 | `tunnl.example.com` |
+| `AUTH_API_URL` | Web 服务 URL，用于 Device Flow | `http://web:3000` |
+| `SSH_PORT` | SSH 服务端口 | `2222` |
+| `HTTP_PORT` | HTTP Proxy 端口 | `8080` |
+| `MGMT_PORT` | Management API 端口 | `9090` |
+
+### Control Plane (web)
+
+| 变量 | 说明 | 示例 |
+|------|------|------|
+| `DATABASE_URL` | PostgreSQL 连接字符串 | `postgres://user:pass@host:5432/db` |
+| `TUNNL_API_URL` | Data Plane Management API | `http://tunnl:9090` |
+
+## 反向代理配置
+
+### Nginx
+
+```nginx
+# /etc/nginx/sites-available/tunnl
+
+# Web Dashboard
+server {
+    listen 443 ssl http2;
+    server_name tunnl.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/tunnl.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tunnl.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+# Tunnel HTTP Proxy (通配符域名)
+server {
+    listen 443 ssl http2;
+    server_name *.tunnl.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/tunnl.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tunnl.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # WebSocket 支持
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
+### Traefik
+
+使用 Docker Compose 集成 Traefik：
+
+```yaml
+# docker-compose.traefik.yml
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.2
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@example.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik Dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+
+  tunnl:
+    image: ghcr.io/your-org/open-tunnl:latest
+    ports:
+      - "2222:2222"   # SSH Server (直接暴露)
+    labels:
+      - "traefik.enable=true"
+      # Tunnel HTTP Proxy (通配符域名)
+      - "traefik.http.routers.tunnl-proxy.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tunnl.example.com`)"
+      - "traefik.http.routers.tunnl-proxy.entrypoints=websecure"
+      - "traefik.http.routers.tunnl-proxy.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tunnl-proxy.tls.domains[0].main=tunnl.example.com"
+      - "traefik.http.routers.tunnl-proxy.tls.domains[0].sans=*.tunnl.example.com"
+      - "traefik.http.routers.tunnl-proxy.service=tunnl-proxy"
+      - "traefik.http.services.tunnl-proxy.loadbalancer.server.port=8080"
+    environment:
+      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
+      - BASE_DOMAIN=tunnl.example.com
+      - AUTH_API_URL=http://web:3000
+
+  web:
+    image: ghcr.io/your-org/open-tunnl-web:latest
+    labels:
+      - "traefik.enable=true"
+      # Web Dashboard
+      - "traefik.http.routers.tunnl-web.rule=Host(`tunnl.example.com`)"
+      - "traefik.http.routers.tunnl-web.entrypoints=websecure"
+      - "traefik.http.routers.tunnl-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tunnl-web.service=tunnl-web"
+      - "traefik.http.services.tunnl-web.loadbalancer.server.port=3000"
+    environment:
+      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
+      - TUNNL_API_URL=http://tunnl:9090
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=tunnl
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=tunnl
+
+volumes:
+  postgres_data:
+```
+
+> [!TIP]
+> Traefik 自动从 Docker labels 获取路由配置，并通过 Let's Encrypt 自动管理 HTTPS 证书。
+
+> [!IMPORTANT]
+> 通配符证书需要 DNS 验证。如使用 Cloudflare，添加以下配置：
+> ```yaml
+> - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+> - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare"
+> ```
+
+## 启动服务
+
+```bash
+# 启动所有服务
+docker compose up -d
+
+# 查看日志
+docker compose logs -f
+
+# 停止服务
+docker compose down
+```
+
+## 验证部署
+
+```bash
+# 检查 SSH 服务
+nc -zv your-domain.com 2222
+
+# 测试隧道连接
+ssh -N -R 80:localhost:3000 -p 2222 user@your-domain.com
+```

@@ -1,0 +1,11 @@
+{
+  "title": "介绍",
+  "pages": [
+    "index",
+    "quick-start",
+    "deployment",
+    "architecture",
+    "api-reference",
+    "troubleshooting"
+  ]
+}

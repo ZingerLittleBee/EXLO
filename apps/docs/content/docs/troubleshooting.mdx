@@ -1,0 +1,188 @@
+---
+title: 故障排除
+description: 常见问题及解决方案。
+icon: BadgeAlert
+---
+
+## SSH 连接问题
+
+### Host Key 验证失败
+
+**现象**：
+```
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+@    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+```
+
+**原因**：服务器重新部署后 Host Key 变更。
+
+**解决方案**：
+```bash
+# 移除旧的 Host Key
+ssh-keygen -R "[tunnl.example.com]:2222"
+
+# 重新连接
+ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+```
+
+### 连接超时
+
+**现象**：
+```
+ssh: connect to host tunnl.example.com port 2222: Connection timed out
+```
+
+**排查步骤**：
+
+1. 检查端口是否开放：
+   ```bash
+   nc -zv tunnl.example.com 2222
+   ```
+
+2. 检查防火墙规则：
+   ```bash
+   # 云服务器安全组需放行 2222 端口
+   ```
+
+3. 检查服务是否运行：
+   ```bash
+   docker compose ps
+   docker compose logs tunnl
+   ```
+
+### Permission Denied
+
+**现象**：
+```
+Permission denied (publickey).
+```
+
+**原因**：Device Flow 认证未完成或超时。
+
+**解决方案**：
+- 确保按提示完成浏览器认证
+- 认证有效期为 15 分钟，超时需重新连接
+
+---
+
+## Device Flow 认证问题
+
+### 验证码无效
+
+**现象**：浏览器提示 "Code not found" 或 "Code expired"。
+
+**原因**：
+- 验证码输入错误
+- 认证请求已超时（15 分钟）
+
+**解决方案**：
+```bash
+# 断开当前连接，重新建立
+# 按 Enter 然后输入 ~.
+# 重新连接获取新验证码
+ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+```
+
+### 无法访问认证页面
+
+**现象**：浏览器无法打开 `https://tunnl.example.com/activate`。
+
+**排查步骤**：
+
+1. 检查 Web 服务是否运行：
+   ```bash
+   docker compose logs web
+   ```
+
+2. 检查反向代理配置：
+   ```bash
+   # Nginx
+   nginx -t
+   
+   # Caddy
+   caddy validate
+   ```
+
+---
+
+## 隧道无法访问
+
+### 子域名解析失败
+
+**现象**：
+```
+curl: (6) Could not resolve host: abc123.tunnl.example.com
+```
+
+**原因**：DNS 未配置通配符记录。
+
+**解决方案**：
+```
+# 添加 DNS 记录
+*.tunnl.example.com  A  <服务器 IP>
+```
+
+### 502 Bad Gateway
+
+**现象**：访问隧道 URL 返回 502 错误。
+
+**可能原因**：
+
+1. **本地服务未运行**
+   ```bash
+   # 确保本地服务在运行
+   curl localhost:3000
+   ```
+
+2. **SSH 隧道已断开**
+   ```bash
+   # 检查 SSH 连接是否存活
+   # 重新建立连接
+   ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+   ```
+
+3. **HTTP Proxy 服务异常**
+   ```bash
+   docker compose logs tunnl | grep -i error
+   ```
+
+---
+
+## 断开 SSH 连接
+
+SSH 反向隧道模式下，`Ctrl+C` **不会**终止连接。
+
+### 使用转义序列
+
+```
+1. 按 Enter（确保在新行开头）
+2. 输入 ~.（波浪号 + 点）
+```
+
+> [!TIP]
+> 如果使用嵌套 SSH（先 SSH 到跳板机，再 SSH 到 FWD.RS），需要连按两次 `~`：`~~.`
+
+### 从 Web Dashboard 终止
+
+1. 登录 Web Dashboard
+2. 导航到隧道列表
+3. 点击对应隧道的 "断开" 按钮
+
+---
+
+## 日志查看
+
+```bash
+# 查看所有日志
+docker compose logs -f
+
+# 仅查看 SSH 服务日志
+docker compose logs -f tunnl
+
+# 查看 Web 服务日志
+docker compose logs -f web
+
+# 过滤错误日志
+docker compose logs tunnl 2>&1 | grep -i error
+```

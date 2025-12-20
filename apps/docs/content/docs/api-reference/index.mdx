@@ -1,0 +1,37 @@
+---
+title: API 概述
+description: FWD.RS API 参考文档。
+icon: FileCode
+---
+
+FWD.RS 提供 Management API 用于隧道管理。
+
+## 可用 API
+
+| API | 端口 | 说明 | 认证 |
+|-----|------|------|------|
+| [Management API](/docs/api-reference/management-api) | `:9090` | 隧道管理 | 无（仅内部访问） |
+
+> [!CAUTION]
+> Management API 运行在 `:9090` 端口，**不需要认证**。请确保此端口不暴露到公网，仅允许 Web Dashboard 容器访问。
+
+## 通用响应格式
+
+所有 API 返回 JSON 格式：
+
+### 成功响应
+
+```json
+{
+  "success": true,
+  "message": "Operation completed"
+}
+```
+
+### 错误响应
+
+```json
+{
+  "error": "Error description"
+}
+```
