@@ -50,11 +50,8 @@ ENV NODE_ENV=production
 
 # Copy production node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-
-# Copy the built application (dist from TanStack Start without Nitro)
-COPY --from=builder /app/apps/web/dist ./dist
-COPY --from=builder /app/apps/web/server.ts ./server.ts
+COPY --from=builder /app/apps/web/.output ./output
 
 EXPOSE 3000
 
-CMD ["bun", "run", "server.ts"]
+CMD ["bun", "run", "output/server/index.mjs"]
