@@ -1,14 +1,11 @@
 # syntax=docker/dockerfile:1
 
 # ---- Builder Stage ----
-FROM rust:slim-bookworm AS builder
+FROM rust:alpine AS builder
 WORKDIR /app
 
 # Install build dependencies
-RUN apt-get update && apt-get install -y \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache musl-dev pkgconf
 
 # Copy Cargo files
 COPY apps/tunnl/Cargo.toml apps/tunnl/Cargo.lock ./
@@ -26,20 +23,17 @@ COPY apps/tunnl/src ./src
 RUN touch src/main.rs && cargo build --release
 
 # ---- Production Stage ----
-FROM debian:bookworm-slim AS production
+FROM alpine:3.21 AS production
 WORKDIR /app
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    libssl3 \
-    && rm -rf /var/lib/apt/lists/*
+# Install minimal runtime dependencies
+RUN apk add --no-cache ca-certificates
 
 # Copy the built binary
 COPY --from=builder /app/target/release/tunnl /app/tunnl
 
 # Create non-root user
-RUN useradd -r -s /bin/false tunnl && \
+RUN adduser -D -s /bin/false tunnl && \
     chown -R tunnl:tunnl /app
 
 USER tunnl
