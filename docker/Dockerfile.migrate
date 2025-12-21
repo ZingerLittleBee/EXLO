@@ -1,0 +1,19 @@
+# syntax=docker/dockerfile:1
+
+# Lightweight migration image for Drizzle
+FROM oven/bun:1.3-alpine AS migrate
+WORKDIR /app
+
+# Copy runtime dependencies config
+COPY docker/migrate.runtime.json ./package.json
+
+# Install only required dependencies
+RUN bun install
+
+# Copy only migration-related files
+COPY packages/db/drizzle.config.ts ./
+COPY packages/db/src/schema ./src/schema
+COPY packages/db/src/migrations ./src/migrations
+
+# Run migrations
+CMD ["bunx", "drizzle-kit", "migrate"]

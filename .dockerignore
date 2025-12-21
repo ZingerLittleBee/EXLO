@@ -1,0 +1,55 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.output
+*.tsbuildinfo
+
+# Rust build artifacts
+apps/tunnl/target
+
+# Environment variables
+.env
+.env*.local
+!.env.example
+!.env.docker.example
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# Turbo
+.turbo
+
+# Testing
+coverage
+.nyc_output
+
+# Documentation (not needed in Docker)
+*.md
+!README.md
+
+# Docker files
+.dockerignore
+
+# Misc
+.cache
+tmp
+temp
+*.tgz

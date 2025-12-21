@@ -1,0 +1,47 @@
+# syntax=docker/dockerfile:1
+
+# ---- Builder Stage ----
+FROM rust:alpine AS builder
+WORKDIR /app
+
+# Install build dependencies
+RUN apk add --no-cache musl-dev pkgconf
+
+# Copy Cargo files
+COPY apps/tunnl/Cargo.toml apps/tunnl/Cargo.lock ./
+
+# Create dummy src to cache dependencies
+RUN mkdir src && \
+    echo "fn main() {}" > src/main.rs && \
+    cargo build --release && \
+    rm -rf src
+
+# Copy actual source code
+COPY apps/tunnl/src ./src
+
+# Build the application (touch main.rs to trigger rebuild)
+RUN touch src/main.rs && cargo build --release
+
+# ---- Production Stage ----
+FROM alpine:3.21 AS production
+WORKDIR /app
+
+# Install minimal runtime dependencies
+RUN apk add --no-cache ca-certificates
+
+# Copy the built binary
+COPY --from=builder /app/target/release/tunnl /app/tunnl
+
+# Create non-root user
+RUN adduser -D -s /bin/false tunnl && \
+    chown -R tunnl:tunnl /app
+
+USER tunnl
+
+# Expose ports:
+# 2222 - SSH Server
+# 8080 - HTTP Proxy
+# 9090 - Management API (internal only)
+EXPOSE 2222 8080 9090
+
+ENTRYPOINT ["/app/tunnl"]

@@ -1,0 +1,84 @@
+name: exlo
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: exlo-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - exlo_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - exlo-network
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.migrate
+    container_name: exlo-migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exlo-network
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: exlo-web
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      NODE_ENV: production
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - exlo-network
+
+  tunnl:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tunnl
+    container_name: exlo-tunnl
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      RUST_LOG: ${RUST_LOG:-info}
+      MANAGEMENT_API_URL: http://tunnl:9090
+    ports:
+      - "${SSH_PORT:-2222}:2222"
+      - "${PROXY_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - exlo-network
+
+volumes:
+  exlo_data:
+    name: exlo_data
+
+networks:
+  exlo-network:
+    name: exlo-network
+    driver: bridge

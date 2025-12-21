@@ -1,0 +1,56 @@
+# syntax=docker/dockerfile:1
+
+# ---- Builder Stage ----
+FROM oven/bun:1.3-alpine AS builder
+WORKDIR /app
+
+# Copy all source code
+COPY package.json bun.lock bunfig.toml turbo.json biome.json ./
+COPY apps/web ./apps/web
+COPY packages ./packages
+
+# Install all dependencies (including devDependencies for build)
+RUN bun install
+
+# Build the application
+WORKDIR /app/apps/web
+RUN bun --bun run build
+
+# ---- Deps Stage: Install only runtime dependencies ----
+FROM oven/bun:1.3-alpine AS deps
+WORKDIR /app
+
+# Install jq for JSON processing
+RUN apk add --no-cache jq
+
+# Copy package.json and jq filter
+COPY apps/web/package.json ./original.json
+COPY docker/extract-deps.jq ./extract-deps.jq
+
+# Extract dependencies using jq filter
+# Filters out workspace: and catalog: refs, adds workspace package deps
+RUN jq -f extract-deps.jq original.json > package.json && rm original.json extract-deps.jq
+
+# Install only these dependencies
+RUN bun install --production
+
+# Clean up
+RUN apk del jq && \
+    rm -rf node_modules/.cache \
+           node_modules/@types \
+    && find node_modules -name "*.d.ts" -delete \
+    && find node_modules -name "*.map" -delete \
+    && find node_modules -name "*.md" ! -name "README.md" -delete \
+    && find node_modules -name "LICENSE*" -delete
+
+# ---- Production Stage ----
+FROM oven/bun:1.3-alpine AS production
+WORKDIR /app
+ENV NODE_ENV=production
+
+# Copy production node_modules from deps stage
+COPY --from=builder /app/apps/web/.output ./output
+
+EXPOSE 3000
+
+CMD ["bun", "run", "output/server/index.mjs"]

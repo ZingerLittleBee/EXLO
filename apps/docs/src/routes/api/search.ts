@@ -1,8 +1,8 @@
+import { createTokenizer } from '@orama/tokenizers/mandarin'
 import { createFileRoute } from '@tanstack/react-router'
 import { createI18nSearchAPI } from 'fumadocs-core/search/server'
-import { createTokenizer } from '@orama/tokenizers/mandarin'
-import { source } from '@/lib/source'
 import { i18n } from '@/lib/i18n'
+import { source } from '@/lib/source'
 
 const server = createI18nSearchAPI('advanced', {
   i18n,

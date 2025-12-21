@@ -1,10 +1,10 @@
 import { createRootRoute, HeadContent, Outlet, Scripts, useParams } from '@tanstack/react-router'
-import { RootProvider } from 'fumadocs-ui/provider/base'
 import { TanstackProvider } from 'fumadocs-core/framework/tanstack'
 import { defineI18nUI } from 'fumadocs-ui/i18n'
+import { RootProvider } from 'fumadocs-ui/provider/base'
 import type * as React from 'react'
-import appCss from '@/styles/app.css?url'
 import { i18n } from '@/lib/i18n'
+import appCss from '@/styles/app.css?url'
 
 const { provider } = defineI18nUI(i18n, {
   translations: {
