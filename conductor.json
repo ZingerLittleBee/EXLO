@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "ln -s '$CONDUCTOR_ROOT_PATH/apps/web/.env' apps/web",
+    "setup": "ln -s '$CONDUCTOR_ROOT_PATH/apps/web/.env' apps/web && bun i",
     "run": ""
   }
 }
