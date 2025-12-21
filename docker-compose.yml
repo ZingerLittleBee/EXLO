@@ -21,6 +21,20 @@ services:
     networks:
       - exlo-network
 
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrate
+    container_name: exlo-migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-exlo}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exlo-network
+    restart: "no"
+
   web:
     build:
       context: .
@@ -35,8 +49,8 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - exlo-network
@@ -49,16 +63,13 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-exlo}
       RUST_LOG: ${RUST_LOG:-info}
-      # Management API URL for web dashboard communication
       MANAGEMENT_API_URL: http://tunnl:9090
     ports:
       - "${SSH_PORT:-2222}:2222"
       - "${PROXY_PORT:-8080}:8080"
-      # Management API should NOT be exposed to public
-      # Only accessible within Docker network
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - exlo-network
