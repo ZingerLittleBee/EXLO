@@ -1,74 +1,74 @@
 ---
-title: 快速开始
-description: 5 分钟内完成 FWD.RS 的部署和首次连接。
+title: Quick Start
+description: Deploy EXLO and make your first connection in 5 minutes.
 icon: Zap
 ---
 
 import { Cards, Card } from 'fumadocs-ui/components/card'
 
-## 环境要求
+## Prerequisites
 
 - Docker & Docker Compose
-- 一个公网域名（如 `fwd.example.com`）
-- 支持通配符 DNS 或子域名配置
+- A public domain (e.g., `your.domain`)
+- Wildcard DNS or subdomain configuration support
 
-## 一键启动
+## One-Click Start
 
 ```bash
-# 克隆仓库
-git clone https://github.com/your-org/open-tunnl.git
-cd open-tunnl
+# Clone the repository
+git clone https://github.com/ZingerLittleBee/EXLO
+cd EXLO
 
-# 复制环境变量模板
+# Copy environment variable template
 cp .env.example .env
 
-# 编辑配置
-# 设置 DATABASE_URL, BASE_DOMAIN 等
+# Edit configuration
+# Set DATABASE_URL, BASE_DOMAIN, etc.
 
-# 启动服务
+# Start services
 docker compose up -d
 ```
 
-## 首次连接
+## First Connection
 
-### 1. 创建 SSH 隧道
+### 1. Create SSH Tunnel
 
 ```bash
-ssh -N -R 80:localhost:3000 -p 2222 user@fwd.example.com
+ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
 ```
 
-参数说明：
-- `-N`: 不执行远程命令
-- `-R 80:localhost:3000`: 将远程 80 端口转发到本地 3000 端口
-- `-p 2222`: SSH 服务端口
+Parameter explanation:
+- `-N`: Don't execute remote commands
+- `-R 80:localhost:3000`: Forward remote port 80 to local port 3000
+- `-p 2222`: SSH server port
 
-### 2. 完成 Device Flow 认证
+### 2. Complete Device Flow Authentication
 
-连接后，终端会显示认证提示：
+After connecting, the terminal will display an authentication prompt:
 
 ```
 ╭──────────────────────────────────────────────────╮
 │  🔐 Device Activation Required                   │
 │                                                  │
-│  Visit: https://fwd.example.com/activate         │
+│  Visit: https://your.domain/activate             │
 │  Code:  ABCD-1234                                │
 ╰──────────────────────────────────────────────────╯
 ```
 
-在浏览器中打开链接并输入验证码完成认证。
+Open the link in your browser and enter the verification code to complete authentication.
 
-### 3. 访问你的服务
+### 3. Access Your Service
 
-认证成功后，你的本地服务将通过分配的子域名访问：
-
-```
-https://your-subdomain.fwd.example.com
-```
-
-## 断开连接
-
-SSH 反向隧道模式下 `Ctrl+C` 不会终止连接。使用以下转义序列：
+After successful authentication, your local service will be accessible via the assigned subdomain:
 
 ```
-按下 Enter，然后输入 ~.
+https://your-subdomain.your.domain
+```
+
+## Disconnect
+
+In SSH reverse tunnel mode, `Ctrl+C` won't terminate the connection. Use the following escape sequence:
+
+```
+Press Enter, then type ~.
 ```

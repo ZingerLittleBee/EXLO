@@ -9,12 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SplatRouteImport } from './routes/$'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiSearchRouteImport } from './routes/api/search'
+import { Route as LangSplatRouteImport } from './routes/$lang/$'
 
-const SplatRoute = SplatRouteImport.update({
-  id: '/$',
-  path: '/$',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSearchRoute = ApiSearchRouteImport.update({
@@ -22,40 +23,49 @@ const ApiSearchRoute = ApiSearchRouteImport.update({
   path: '/api/search',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LangSplatRoute = LangSplatRouteImport.update({
+  id: '/$lang/$',
+  path: '/$lang/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/$': typeof SplatRoute
+  '/': typeof IndexRoute
+  '/$lang/$': typeof LangSplatRoute
   '/api/search': typeof ApiSearchRoute
 }
 export interface FileRoutesByTo {
-  '/$': typeof SplatRoute
+  '/': typeof IndexRoute
+  '/$lang/$': typeof LangSplatRoute
   '/api/search': typeof ApiSearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/$': typeof SplatRoute
+  '/': typeof IndexRoute
+  '/$lang/$': typeof LangSplatRoute
   '/api/search': typeof ApiSearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/$' | '/api/search'
+  fullPaths: '/' | '/$lang/$' | '/api/search'
   fileRoutesByTo: FileRoutesByTo
-  to: '/$' | '/api/search'
-  id: '__root__' | '/$' | '/api/search'
+  to: '/' | '/$lang/$' | '/api/search'
+  id: '__root__' | '/' | '/$lang/$' | '/api/search'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  SplatRoute: typeof SplatRoute
+  IndexRoute: typeof IndexRoute
+  LangSplatRoute: typeof LangSplatRoute
   ApiSearchRoute: typeof ApiSearchRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/$': {
-      id: '/$'
-      path: '/$'
-      fullPath: '/$'
-      preLoaderRoute: typeof SplatRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/search': {
@@ -65,11 +75,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$lang/$': {
+      id: '/$lang/$'
+      path: '/$lang/$'
+      fullPath: '/$lang/$'
+      preLoaderRoute: typeof LangSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  SplatRoute: SplatRoute,
+  IndexRoute: IndexRoute,
+  LangSplatRoute: LangSplatRoute,
   ApiSearchRoute: ApiSearchRoute,
 }
 export const routeTree = rootRouteImport

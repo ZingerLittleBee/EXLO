@@ -20,4 +20,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  fwd.rs_postgres_data:
+  EXLO_postgres_data:

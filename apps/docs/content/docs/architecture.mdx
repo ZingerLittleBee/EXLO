@@ -1,21 +1,21 @@
 ---
-title: 系统架构
-description: 深入了解 FWD.RS 的双平面架构设计。
+title: System Architecture
+description: Deep dive into EXLO's dual-plane architecture design.
 icon: Network
 ---
 
-## 架构概览
+## Architecture Overview
 
-FWD.RS 采用**双平面架构**，将流量处理与业务逻辑分离：
+EXLO adopts a **dual-plane architecture**, separating traffic processing from business logic:
 
 ```mermaid
 flowchart TB
-    subgraph public["公网"]
-        client[SSH 客户端]
-        browser[用户浏览器]
+    subgraph public["Public Network"]
+        client[SSH Client]
+        browser[User Browser]
     end
 
-    subgraph cluster["FWD.RS"]
+    subgraph cluster["EXLO"]
         subgraph data["Data Plane (Rust)"]
             ssh[":2222 SSH Server"]
             proxy[":8080 HTTP Proxy"]
@@ -37,91 +37,91 @@ flowchart TB
     web --> db
 ```
 
-## 组件说明
+## Component Overview
 
 ### Data Plane (Rust)
 
-高性能的流量处理层，负责：
+High-performance traffic processing layer, responsible for:
 
-- **SSH Server** (`:2222`) - 接收 `ssh -R` 连接请求
-- **HTTP Proxy** (`:8080`) - 将请求路由到对应的隧道
-- **Management API** (`:9090`) - 内部管理接口
+- **SSH Server** (`:2222`) - Receives `ssh -R` connection requests
+- **HTTP Proxy** (`:8080`) - Routes requests to corresponding tunnels
+- **Management API** (`:9090`) - Internal management interface
 
 ### Control Plane (Node.js)
 
-Web 管理层，负责：
+Web management layer, responsible for:
 
-- **用户认证** - Device Flow、邀请链接
-- **隧道监控** - 实时显示活动连接
-- **管理操作** - 终止连接、访问日志
+- **User Authentication** - Device Flow, invitation links
+- **Tunnel Monitoring** - Real-time display of active connections
+- **Management Operations** - Terminate connections, access logs
 
-## Virtual Bind 机制
+## Virtual Bind Mechanism
 
-FWD.RS 使用 **Virtual Bind** 替代传统的端口绑定：
+EXLO uses **Virtual Bind** instead of traditional port binding:
 
 ```mermaid
 sequenceDiagram
-    participant Client as SSH 客户端
+    participant Client as SSH Client
     participant SSH as SSH Server
     participant Registry as Tunnel Registry
     participant Proxy as HTTP Proxy
-    participant User as 用户浏览器
+    participant User as User Browser
 
     Client->>SSH: ssh -R 80:localhost:3000
-    SSH->>Registry: 注册 subdomain → Client
-    SSH-->>Client: 分配 abc123.fwd.example.com
+    SSH->>Registry: Register subdomain → Client
+    SSH-->>Client: Assign abc123.your.domain
 
     User->>Proxy: GET abc123.tunnl.example.com
-    Proxy->>Registry: 查找 abc123
-    Registry-->>Proxy: 返回 Client 连接
-    Proxy->>Client: 转发请求（via SSH channel）
-    Client-->>Proxy: 返回响应
-    Proxy-->>User: 返回响应
+    Proxy->>Registry: Lookup abc123
+    Registry-->>Proxy: Return Client connection
+    Proxy->>Client: Forward request (via SSH channel)
+    Client-->>Proxy: Return response
+    Proxy-->>User: Return response
 ```
 
-传统 SSH 反向隧道会在服务器上绑定真实端口。FWD.RS 通过子域名路由，实现：
+Traditional SSH reverse tunnels bind real ports on the server. EXLO uses subdomain routing to achieve:
 
-- **多租户隔离** - 不同用户使用独立子域名
-- **无端口冲突** - 所有隧道共用 `:8080`
-- **动态分配** - 自动生成唯一子域名
+- **Multi-tenant Isolation** - Different users use independent subdomains
+- **No Port Conflicts** - All tunnels share `:8080`
+- **Dynamic Allocation** - Automatically generate unique subdomains
 
-## Device Flow 认证
+## Device Flow Authentication
 
-为支持无头环境（CI/CD、服务器），采用 OAuth 2.0 Device Flow：
+To support headless environments (CI/CD, servers), OAuth 2.0 Device Flow is used:
 
 ```mermaid
 sequenceDiagram
-    participant SSH as SSH 客户端
-    participant Server as FWD.RS
-    participant Browser as 浏览器
-    participant DB as 数据库
+    participant SSH as SSH Client
+    participant Server as EXLO
+    participant Browser as Browser
+    participant DB as Database
 
-    SSH->>Server: 建立 SSH 连接
-    Server->>DB: 创建 device_code
-    Server-->>SSH: 显示认证链接 + Code
+    SSH->>Server: Establish SSH connection
+    Server->>DB: Create device_code
+    Server-->>SSH: Display auth link + Code
 
-    Browser->>Server: 打开 /activate
-    Browser->>Server: 输入 Code
-    Server->>DB: 验证并标记完成
+    Browser->>Server: Open /activate
+    Browser->>Server: Enter Code
+    Server->>DB: Verify and mark complete
 
-    loop 轮询
-        SSH->>Server: 检查认证状态
-        Server->>DB: 查询状态
+    loop Polling
+        SSH->>Server: Check auth status
+        Server->>DB: Query status
     end
 
-    Server-->>SSH: 认证成功
-    SSH->>Server: 建立隧道
+    Server-->>SSH: Authentication successful
+    SSH->>Server: Establish tunnel
 ```
 
-## 端口与协议
+## Ports and Protocols
 
-| 端口 | 协议 | 方向 | 说明 |
-|------|------|------|------|
-| `:2222` | SSH | 入站 | 隧道连接入口 |
-| `:8080` | HTTP/HTTPS | 入站 | 隧道流量代理 |
-| `:3000` | HTTP | 入站 | Web Dashboard |
-| `:9090` | HTTP | **仅内部** | Management API |
-| `:5432` | PostgreSQL | **仅内部** | 数据库 |
+| Port | Protocol | Direction | Description |
+|------|----------|-----------|-------------|
+| `:2222` | SSH | Inbound | Tunnel connection entry |
+| `:8080` | HTTP/HTTPS | Inbound | Tunnel traffic proxy |
+| `:3000` | HTTP | Inbound | Web Dashboard |
+| `:9090` | HTTP | **Internal Only** | Management API |
+| `:5432` | PostgreSQL | **Internal Only** | Database |
 
 > [!CAUTION]
-> `:9090` Management API 允许无认证终止任意连接，**禁止**暴露到公网！
+> `:9090` Management API allows unauthenticated termination of any connection. **Never** expose to the public internet!

@@ -1,15 +1,15 @@
 ---
 title: Management API
-description: 隧道管理 API 端点参考。
+description: Tunnel management API endpoint reference.
 icon: Settings
 ---
 
-Management API 运行在 `:9090` 端口，用于管理活动隧道。
+The Management API runs on port `:9090` and is used for managing active tunnels.
 
 > [!CAUTION]
-> 此 API 无需认证，仅供内部使用。请勿暴露到公网！
+> This API requires no authentication and is for internal use only. Do not expose to the public internet!
 
-## 基础信息
+## Basic Information
 
 - **Base URL**: `http://localhost:9090`
 - **Content-Type**: `application/json`
@@ -18,9 +18,9 @@ Management API 运行在 `:9090` 端口，用于管理活动隧道。
 
 ## GET /tunnels
 
-列出所有活动隧道。
+List all active tunnels.
 
-### 响应
+### Response
 
 ```json
 {
@@ -35,16 +35,16 @@ Management API 运行在 `:9090` 端口，用于管理活动隧道。
 }
 ```
 
-### 字段说明
+### Field Description
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| `subdomain` | string | 隧道子域名 |
-| `user_id` | string \| null | 认证用户 ID，匿名连接为 `null` |
-| `client_ip` | string | 客户端 IP 地址 |
-| `connected_at` | string | 连接时间 (ISO 8601) |
+| Field | Type | Description |
+|-------|------|-------------|
+| `subdomain` | string | Tunnel subdomain |
+| `user_id` | string \| null | Authenticated user ID, `null` for anonymous connections |
+| `client_ip` | string | Client IP address |
+| `connected_at` | string | Connection time (ISO 8601) |
 
-### 示例
+### Example
 
 ```bash
 curl http://localhost:9090/tunnels
@@ -54,15 +54,15 @@ curl http://localhost:9090/tunnels
 
 ## DELETE /tunnels/:subdomain
 
-强制断开指定隧道。
+Force disconnect a specific tunnel.
 
-### 路径参数
+### Path Parameters
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| `subdomain` | string | 要断开的隧道子域名 |
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `subdomain` | string | Subdomain of the tunnel to disconnect |
 
-### 成功响应 (200)
+### Success Response (200)
 
 ```json
 {
@@ -71,7 +71,7 @@ curl http://localhost:9090/tunnels
 }
 ```
 
-### 错误响应 (404)
+### Error Response (404)
 
 ```json
 {
@@ -79,7 +79,7 @@ curl http://localhost:9090/tunnels
 }
 ```
 
-### 示例
+### Example
 
 ```bash
 curl -X DELETE http://localhost:9090/tunnels/abc123
@@ -87,11 +87,11 @@ curl -X DELETE http://localhost:9090/tunnels/abc123
 
 ---
 
-## 健康检查
+## Health Check
 
-Management API 暂未提供专用健康检查端点。可通过 `GET /tunnels` 验证服务状态。
+The Management API does not yet provide a dedicated health check endpoint. You can verify service status via `GET /tunnels`.
 
 ```bash
-# 简单健康检查
+# Simple health check
 curl -s http://localhost:9090/tunnels > /dev/null && echo "OK" || echo "FAIL"
 ```

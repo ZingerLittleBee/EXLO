@@ -1,51 +1,51 @@
 ---
-title: 故障排除
-description: 常见问题及解决方案。
+title: Troubleshooting
+description: Common issues and solutions.
 icon: BadgeAlert
 ---
 
-## SSH 连接问题
+## SSH Connection Issues
 
-### Host Key 验证失败
+### Host Key Verification Failed
 
-**现象**：
+**Symptom**:
 ```
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 ```
 
-**原因**：服务器重新部署后 Host Key 变更。
+**Cause**: Server Host Key changed after redeployment.
 
-**解决方案**：
+**Solution**:
 ```bash
-# 移除旧的 Host Key
+# Remove old Host Key
 ssh-keygen -R "[tunnl.example.com]:2222"
 
-# 重新连接
+# Reconnect
 ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
 ```
 
-### 连接超时
+### Connection Timeout
 
-**现象**：
+**Symptom**:
 ```
 ssh: connect to host tunnl.example.com port 2222: Connection timed out
 ```
 
-**排查步骤**：
+**Troubleshooting Steps**:
 
-1. 检查端口是否开放：
+1. Check if port is open:
    ```bash
    nc -zv tunnl.example.com 2222
    ```
 
-2. 检查防火墙规则：
+2. Check firewall rules:
    ```bash
-   # 云服务器安全组需放行 2222 端口
+   # Cloud server security groups need to allow port 2222
    ```
 
-3. 检查服务是否运行：
+3. Check if service is running:
    ```bash
    docker compose ps
    docker compose logs tunnl
@@ -53,49 +53,49 @@ ssh: connect to host tunnl.example.com port 2222: Connection timed out
 
 ### Permission Denied
 
-**现象**：
+**Symptom**:
 ```
 Permission denied (publickey).
 ```
 
-**原因**：Device Flow 认证未完成或超时。
+**Cause**: Device Flow authentication not completed or timed out.
 
-**解决方案**：
-- 确保按提示完成浏览器认证
-- 认证有效期为 15 分钟，超时需重新连接
+**Solution**:
+- Make sure to complete browser authentication as prompted
+- Authentication expires after 15 minutes, reconnect if timed out
 
 ---
 
-## Device Flow 认证问题
+## Device Flow Authentication Issues
 
-### 验证码无效
+### Invalid Verification Code
 
-**现象**：浏览器提示 "Code not found" 或 "Code expired"。
+**Symptom**: Browser shows "Code not found" or "Code expired".
 
-**原因**：
-- 验证码输入错误
-- 认证请求已超时（15 分钟）
+**Cause**:
+- Verification code entered incorrectly
+- Authentication request timed out (15 minutes)
 
-**解决方案**：
+**Solution**:
 ```bash
-# 断开当前连接，重新建立
-# 按 Enter 然后输入 ~.
-# 重新连接获取新验证码
+# Disconnect and reconnect
+# Press Enter then type ~.
+# Reconnect to get a new verification code
 ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
 ```
 
-### 无法访问认证页面
+### Cannot Access Authentication Page
 
-**现象**：浏览器无法打开 `https://tunnl.example.com/activate`。
+**Symptom**: Browser cannot open `https://tunnl.example.com/activate`.
 
-**排查步骤**：
+**Troubleshooting Steps**:
 
-1. 检查 Web 服务是否运行：
+1. Check if Web service is running:
    ```bash
    docker compose logs web
    ```
 
-2. 检查反向代理配置：
+2. Check reverse proxy configuration:
    ```bash
    # Nginx
    nginx -t
@@ -106,83 +106,83 @@ ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
 
 ---
 
-## 隧道无法访问
+## Tunnel Access Issues
 
-### 子域名解析失败
+### Subdomain Resolution Failed
 
-**现象**：
+**Symptom**:
 ```
 curl: (6) Could not resolve host: abc123.tunnl.example.com
 ```
 
-**原因**：DNS 未配置通配符记录。
+**Cause**: DNS wildcard record not configured.
 
-**解决方案**：
+**Solution**:
 ```
-# 添加 DNS 记录
-*.tunnl.example.com  A  <服务器 IP>
+# Add DNS record
+*.tunnl.example.com  A  <server IP>
 ```
 
 ### 502 Bad Gateway
 
-**现象**：访问隧道 URL 返回 502 错误。
+**Symptom**: Accessing tunnel URL returns 502 error.
 
-**可能原因**：
+**Possible Causes**:
 
-1. **本地服务未运行**
+1. **Local service not running**
    ```bash
-   # 确保本地服务在运行
+   # Make sure local service is running
    curl localhost:3000
    ```
 
-2. **SSH 隧道已断开**
+2. **SSH tunnel disconnected**
    ```bash
-   # 检查 SSH 连接是否存活
-   # 重新建立连接
+   # Check if SSH connection is alive
+   # Reconnect
    ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
    ```
 
-3. **HTTP Proxy 服务异常**
+3. **HTTP Proxy service error**
    ```bash
    docker compose logs tunnl | grep -i error
    ```
 
 ---
 
-## 断开 SSH 连接
+## Disconnecting SSH Connection
 
-SSH 反向隧道模式下，`Ctrl+C` **不会**终止连接。
+In SSH reverse tunnel mode, `Ctrl+C` **does not** terminate the connection.
 
-### 使用转义序列
+### Using Escape Sequence
 
 ```
-1. 按 Enter（确保在新行开头）
-2. 输入 ~.（波浪号 + 点）
+1. Press Enter (ensure you're at the beginning of a new line)
+2. Type ~. (tilde + period)
 ```
 
 > [!TIP]
-> 如果使用嵌套 SSH（先 SSH 到跳板机，再 SSH 到 FWD.RS），需要连按两次 `~`：`~~.`
+> If using nested SSH (SSH to jump host first, then SSH to EXLO), press `~` twice: `~~.`
 
-### 从 Web Dashboard 终止
+### Terminate from Web Dashboard
 
-1. 登录 Web Dashboard
-2. 导航到隧道列表
-3. 点击对应隧道的 "断开" 按钮
+1. Login to Web Dashboard
+2. Navigate to tunnel list
+3. Click "Disconnect" button for the corresponding tunnel
 
 ---
 
-## 日志查看
+## Viewing Logs
 
 ```bash
-# 查看所有日志
+# View all logs
 docker compose logs -f
 
-# 仅查看 SSH 服务日志
+# View SSH service logs only
 docker compose logs -f tunnl
 
-# 查看 Web 服务日志
+# View Web service logs
 docker compose logs -f web
 
-# 过滤错误日志
+# Filter error logs
 docker compose logs tunnl 2>&1 | grep -i error
 ```

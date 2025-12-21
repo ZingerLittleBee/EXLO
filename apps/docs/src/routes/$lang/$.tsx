@@ -8,11 +8,16 @@ import defaultMdxComponents from 'fumadocs-ui/mdx'
 import { baseOptions } from '@/lib/layout.shared'
 import { source } from '@/lib/source'
 
-export const Route = createFileRoute('/$')({
+export const Route = createFileRoute('/$lang/$')({
   component: Page,
   loader: async ({ params }) => {
     const slugs = params._splat?.split('/') ?? []
-    const data = await serverLoader({ data: slugs })
+    const data = await serverLoader({
+      data: {
+        slugs,
+        lang: params.lang
+      }
+    })
     await clientLoader.preload(data.path)
     return data
   }
@@ -21,14 +26,14 @@ export const Route = createFileRoute('/$')({
 const serverLoader = createServerFn({
   method: 'GET'
 })
-  .inputValidator((slugs: string[]) => slugs)
-  .handler(async ({ data: slugs }) => {
-    const page = source.getPage(slugs)
+  .inputValidator((params: { slugs: string[]; lang?: string }) => params)
+  .handler(async ({ data: { slugs, lang } }) => {
+    const page = source.getPage(slugs, lang)
     if (!page) throw notFound()
 
     return {
       path: page.path,
-      pageTree: await source.serializePageTree(source.getPageTree())
+      pageTree: await source.serializePageTree(source.getPageTree(lang))
     }
   })
 
@@ -51,13 +56,16 @@ const clientLoader = browserCollections.docs.createClientLoader({
 })
 
 function Page() {
+  const { lang } = Route.useParams()
   const data = Route.useLoaderData()
   const { pageTree } = useFumadocsLoader(data)
   const Content = clientLoader.getComponent(data.path)
 
   return (
-    <DocsLayout {...baseOptions()} tree={pageTree}>
+    <DocsLayout {...baseOptions(lang)} tree={pageTree}>
       <Content />
     </DocsLayout>
   )
 }
+
+

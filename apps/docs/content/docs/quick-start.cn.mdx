@@ -1,0 +1,76 @@
+---
+title: 快速开始
+description: 5 分钟内完成 EXLO 的部署和首次连接。
+icon: Zap
+---
+
+import { Cards, Card } from 'fumadocs-ui/components/card'
+
+## 环境要求
+
+- Docker & Docker Compose
+- 一个公网域名（如 `your.domain`）
+- 支持通配符 DNS 或子域名配置
+
+## 一键启动
+
+```bash
+# 克隆仓库
+git clone https://github.com/ZingerLittleBee/EXLO
+cd EXLO
+
+# 复制环境变量模板
+cp .env.example .env
+
+# 编辑配置
+# 设置 DATABASE_URL, BASE_DOMAIN 等
+
+# 启动服务
+docker compose up -d
+```
+
+## 首次连接
+
+### 1. 创建 SSH 隧道
+
+```bash
+ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
+```
+
+参数说明：
+- `-N`: 不执行远程命令
+- `-R 80:localhost:3000`: 将远程 80 端口转发到本地 3000 端口
+- `-p 2222`: SSH 服务端口
+
+### 2. 完成 Device Flow 认证
+
+连接后，终端会显示认证提示：
+
+```
+╭──────────────────────────────────────────────────╮
+│  🔐 Device Activation Required                   │
+│                                                  │
+│  Visit: https://your.domain/activate             │
+│  Code:  ABCD-1234                                │
+╰──────────────────────────────────────────────────╯
+```
+
+在浏览器中打开链接并输入验证码完成认证。
+
+### 3. 访问你的服务
+
+认证成功后，你的本地服务将通过分配的子域名访问：
+
+```
+https://your-subdomain.your.domain
+```
+
+## 断开连接
+
+SSH 反向隧道模式下 `Ctrl+C` 不会终止连接。使用以下转义序列：
+
+```
+按下 Enter，然后输入 ~.
+```
+
+

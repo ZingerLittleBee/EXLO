@@ -1,0 +1,99 @@
+---
+title: Management API
+description: 隧道管理 API 端点参考。
+icon: Settings
+---
+
+Management API 运行在 `:9090` 端口，用于管理活动隧道。
+
+> [!CAUTION]
+> 此 API 无需认证，仅供内部使用。请勿暴露到公网！
+
+## 基础信息
+
+- **Base URL**: `http://localhost:9090`
+- **Content-Type**: `application/json`
+
+---
+
+## GET /tunnels
+
+列出所有活动隧道。
+
+### 响应
+
+```json
+{
+  "tunnels": [
+    {
+      "subdomain": "abc123",
+      "user_id": "user_xxx",
+      "client_ip": "192.168.1.100",
+      "connected_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
+### 字段说明
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `subdomain` | string | 隧道子域名 |
+| `user_id` | string \| null | 认证用户 ID，匿名连接为 `null` |
+| `client_ip` | string | 客户端 IP 地址 |
+| `connected_at` | string | 连接时间 (ISO 8601) |
+
+### 示例
+
+```bash
+curl http://localhost:9090/tunnels
+```
+
+---
+
+## DELETE /tunnels/:subdomain
+
+强制断开指定隧道。
+
+### 路径参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `subdomain` | string | 要断开的隧道子域名 |
+
+### 成功响应 (200)
+
+```json
+{
+  "success": true,
+  "message": "Tunnel 'abc123' disconnected"
+}
+```
+
+### 错误响应 (404)
+
+```json
+{
+  "error": "Tunnel not found: abc123"
+}
+```
+
+### 示例
+
+```bash
+curl -X DELETE http://localhost:9090/tunnels/abc123
+```
+
+---
+
+## 健康检查
+
+Management API 暂未提供专用健康检查端点。可通过 `GET /tunnels` 验证服务状态。
+
+```bash
+# 简单健康检查
+curl -s http://localhost:9090/tunnels > /dev/null && echo "OK" || echo "FAIL"
+```
+
+
