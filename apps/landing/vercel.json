@@ -1,16 +1,8 @@
 {
   "rewrites": [
     {
-      "source": "/docs",
-      "destination": "https://exlo-docs.vercel.app"
-    },
-    {
       "source": "/docs/:match*",
-      "destination": "https://exlo-docs.vercel.app/:match*"
-    },
-    {
-      "source": "/assets/:match*",
-      "destination": "https://exlo-docs.vercel.app/assets/:match*"
+      "destination": "https://exlo-docs.vercel.app/docs/:match*"
     }
   ]
 }
