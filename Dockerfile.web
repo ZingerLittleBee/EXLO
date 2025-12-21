@@ -16,13 +16,19 @@ RUN bun install
 WORKDIR /app/apps/web
 RUN bun --bun run build
 
-# Prune to production dependencies and remove unnecessary packages
+# ---- Deps Stage: Install only runtime dependencies ----
+FROM oven/bun:1.3-alpine AS deps
 WORKDIR /app
-RUN rm -rf node_modules && bun install --production && \
-    rm -rf node_modules/.cache \
+
+# Copy runtime dependencies config
+COPY docker/web.runtime.json ./package.json
+
+# Install only these dependencies
+RUN bun install --production
+
+# Clean up
+RUN rm -rf node_modules/.cache \
            node_modules/@types \
-           node_modules/drizzle-kit \
-           node_modules/typescript \
     && find node_modules -name "*.d.ts" -delete \
     && find node_modules -name "*.map" -delete \
     && find node_modules -name "*.md" ! -name "README.md" -delete \
@@ -33,8 +39,8 @@ FROM oven/bun:1.3-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy production node_modules
-COPY --from=builder /app/node_modules ./node_modules
+# Copy production node_modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 
 # Copy the built application
 COPY --from=builder /app/apps/web/dist ./dist
