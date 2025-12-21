@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/docs/:match*",
-      "destination": "https://exlo-docs.vercel.app/docs/:match*"
+      "destination": "https://exlo-docs.vercel.app/:match*"
     }
   ]
 }
