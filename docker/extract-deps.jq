@@ -13,10 +13,7 @@ def is_build_only:
   . as $pkg |
   [
     "@tailwindcss/vite",
-    "@tanstack/react-start",
     "@tanstack/router-plugin",
-    "@tanstack/react-router-with-query",
-    "@tanstack/react-query",
     "tailwindcss",
     "vite-tsconfig-paths",
     "tw-animate-css"
@@ -40,6 +37,8 @@ def is_build_only:
     "pg": "^8.16.3",
     "better-auth": "^1.4.7",
     "dotenv": "^17.2.3",
-    "zod": "^4.2.1"
+    "zod": "^4.2.1",
+    "@tanstack/react-router-devtools": "^1.141.1",
+    "@tanstack/react-query-devtools": "^5.91.1"
   }
 }
