@@ -30,9 +30,18 @@ impl Default for DeviceFlowConfig {
                 .unwrap_or_else(|_| "http://localhost:3000".to_string()),
             internal_secret: std::env::var("INTERNAL_API_SECRET")
                 .unwrap_or_else(|_| "dev-secret".to_string()),
-            code_expiry_secs: 300, // 5 minutes
-            poll_interval_secs: 2,
-            max_poll_attempts: 150, // 5 minutes at 2 sec intervals
+            code_expiry_secs: std::env::var("CODE_EXPIRY_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(300), // 5 minutes
+            poll_interval_secs: std::env::var("POLL_INTERVAL_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(2),
+            max_poll_attempts: std::env::var("MAX_POLL_ATTEMPTS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(150), // 5 minutes at 2 sec intervals
         }
     }
 }

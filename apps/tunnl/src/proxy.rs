@@ -12,6 +12,7 @@ use hyper_util::rt::TokioIo;
 use log::{debug, error, info, warn};
 use tokio::net::TcpListener;
 
+use crate::config::{get_proxy_url, get_tunnel_url};
 use crate::state::AppState;
 
 /// Extract subdomain from Host header.
@@ -42,19 +43,22 @@ async fn handle_http_request(
         Some(s) => s,
         None => {
             let tunnels = state.list_tunnels().await;
-            let tunnel_list: Vec<String> = tunnels.iter()
-                .map(|t| format!("  - http://{}.localhost:8080", t.subdomain))
+            let proxy_url = get_proxy_url();
+            let tunnel_list: Vec<String> = tunnels
+                .iter()
+                .map(|t| format!("  - {}", get_tunnel_url(&t.subdomain)))
                 .collect();
-            
+
             let body = if tunnel_list.is_empty() {
                 "No tunnels registered.\n\nConnect with: ssh -N -R 80:localhost:PORT -p 2222 user@server".to_string()
             } else {
                 format!(
-                    "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.localhost\" http://localhost:8080/",
-                    tunnel_list.join("\n")
+                    "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}",
+                    tunnel_list.join("\n"),
+                    proxy_url
                 )
             };
-            
+
             return Ok(Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body(Full::new(Bytes::from(body)))

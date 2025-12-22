@@ -4,6 +4,8 @@
 
 use console::{measure_text_width, pad_str, style, Alignment};
 
+use crate::config::get_tunnel_url;
+
 /// Box width (inner content width, excluding borders)
 const BOX_WIDTH: usize = 58;
 
@@ -123,7 +125,7 @@ pub fn create_success_box(username: &str, tunnel_urls: &[(String, u32)]) -> Stri
     output.push_str(&content_line("Your tunnel is ready:"));
 
     for (subdomain, _port) in tunnel_urls {
-        let full_url = format!("http://{}.localhost:8080", subdomain);
+        let full_url = get_tunnel_url(subdomain);
         let url_line = format!(
             "{} {}",
             style("➜").cyan(),

@@ -19,15 +19,25 @@ use log::info;
 use russh::server::Server;
 
 use tunnl::{
-    load_or_generate_server_key, run_http_proxy, run_management_api, AppState, DeviceFlowClient,
-    DeviceFlowConfig, TunnelServer,
+    load_or_generate_server_key, run_http_proxy, run_management_api, validate_config, AppState,
+    DeviceFlowClient, DeviceFlowConfig, TunnelServer,
 };
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    // Load .env file (optional, won't fail if not found)
+    dotenvy::dotenv().ok();
+
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("🚀 Starting SSH Reverse Tunnel Server with Device Flow...");
+
+    // Validate configuration at startup
+    if let Err(e) = validate_config() {
+        log::error!("Configuration error: {}", e);
+        std::process::exit(1);
+    }
+    info!("✓ Configuration validated");
 
     // Initialize shared state
     let state = Arc::new(AppState::new());
@@ -44,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
     // Configure SSH server
     let config = russh::server::Config {
         methods: russh::MethodSet::PUBLICKEY,
-        server_id: russh::SshId::Standard("SSH-2.0-EXLO-0.1.0".to_string()),
+        server_id: russh::SshId::Standard(format!("SSH-1.0-EXLO-{}", env!("CARGO_PKG_VERSION"))),
         keys: vec![key],
         inactivity_timeout: Some(std::time::Duration::from_secs(1800)),
         auth_rejection_time: std::time::Duration::from_secs(3),
@@ -55,17 +65,20 @@ async fn main() -> anyhow::Result<()> {
     let config = Arc::new(config);
     let mut server = TunnelServer::new(state.clone(), device_flow_client);
 
-    let ssh_addr = "0.0.0.0:2222";
-    let http_addr = "0.0.0.0:8080";
-    let mgmt_addr = "0.0.0.0:9090";
+    let ssh_port = std::env::var("SSH_PORT").unwrap_or_else(|_| "2222".to_string());
+    let ssh_addr = format!("0.0.0.0:{}", ssh_port);
+    let http_port = std::env::var("HTTP_PORT").unwrap_or_else(|_| "8080".to_string());
+    let http_addr = format!("0.0.0.0:{}", http_port);
+    let mgmt_port = std::env::var("MGMT_PORT").unwrap_or_else(|_| "9090".to_string());
+    let mgmt_addr = format!("0.0.0.0:{}", mgmt_port);
 
     info!("═══════════════════════════════════════════════════════════════");
     info!("SSH server:     {}", ssh_addr);
     info!("HTTP proxy:     {}", http_addr);
-    info!("Management API: {}", mgmt_addr);
+    info!("Inner Management API: {}", mgmt_addr);
     info!("═══════════════════════════════════════════════════════════════");
     info!("To create a tunnel:");
-    info!("  ssh -N -R 80:localhost:3000 -p 2222 user@yourserver.com");
+    info!("  ssh -N -R 3000:localhost:3000 -p {} user@yourserver.com", ssh_port);
     info!("");
     info!("You will see an activation URL - visit it to authorize.");
     info!("═══════════════════════════════════════════════════════════════");
@@ -77,10 +90,10 @@ async fn main() -> anyhow::Result<()> {
         result = server.run_on_address(config, ssh_addr) => {
             result?;
         }
-        result = run_http_proxy(http_state, http_addr) => {
+        result = run_http_proxy(http_state, &http_addr) => {
             result?;
         }
-        result = run_management_api(mgmt_state, mgmt_addr) => {
+        result = run_management_api(mgmt_state, &mgmt_addr) => {
             result?;
         }
     }

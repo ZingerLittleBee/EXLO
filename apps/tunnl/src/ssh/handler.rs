@@ -12,6 +12,7 @@ use russh::{Channel, ChannelId, Disconnect};
 use russh_keys::HashAlg;
 use tokio::sync::{oneshot, Mutex};
 
+use crate::config::{get_tunnel_url, is_development};
 use crate::device::{DeviceFlowClient, RegisterTunnelRequest, generate_activation_code};
 use crate::error::TunnelError;
 use crate::state::{AppState, TunnelInfo};
@@ -265,11 +266,12 @@ impl SshHandler {
 
                                 match app_state.register_tunnel(tunnel_info).await {
                                     Ok(()) => {
+                                        let tunnel_url = crate::config::get_tunnel_url(&subdomain);
                                         info!(
                                             "✓ Tunnel registered!\n\
                                              Subdomain: {}\n\
-                                             URL: http://{}.localhost:8080",
-                                            subdomain, subdomain
+                                             URL: {}",
+                                            subdomain, tunnel_url
                                         );
                                         shared_state.lock().await.registered_subdomains.push(subdomain.clone());
                                         created_tunnels.push((subdomain.clone(), pending.port));
@@ -422,10 +424,10 @@ impl Handler for SshHandler {
             address, port, self.username, status
         );
 
-        // Skip auth completely if TUNNL_SKIP_AUTH is set
-        if std::env::var("TUNNL_SKIP_AUTH").is_ok() {
+        // Skip auth completely if TUNNL_SKIP_AUTH is set (development only)
+        if std::env::var("TUNNL_SKIP_AUTH").is_ok() && is_development() {
             if !self.is_verified().await {
-                warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification");
+                warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification (development mode)");
                 let mut state = self.shared_state.lock().await;
                 state.verification_status = VerificationStatus::Verified {
                     user_id: self.username.clone().unwrap_or_else(|| "dev".to_string()),
@@ -632,11 +634,12 @@ impl SshHandler {
 
         match self.state.register_tunnel(tunnel_info).await {
             Ok(()) => {
+                let tunnel_url = get_tunnel_url(&subdomain);
                 info!(
                     "✓ Tunnel registered!\n\
                      Subdomain: {}\n\
-                     URL: http://{}.localhost:8080",
-                    subdomain, subdomain
+                     URL: {}",
+                    subdomain, tunnel_url
                 );
                 self.shared_state.lock().await.registered_subdomains.push(subdomain);
                 Ok(true)

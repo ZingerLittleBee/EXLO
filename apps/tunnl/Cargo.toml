@@ -19,6 +19,9 @@ thiserror = "1.0"
 log = "0.4"
 env_logger = "0.11"
 
+# Environment variables
+dotenvy = "0.15"
+
 # Async utilities
 async-trait = "0.1"
 

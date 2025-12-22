@@ -11,7 +11,8 @@ export const Route = createFileRoute('/dashboard/tunnels')({
   loader: async () => {
     // Auth is handled by parent /dashboard route
     const data = await getTunnels()
-    return { initialTunnels: data.tunnels }
+    const proxyUrl = process.env.PROXY_URL || 'http://localhost:8080'
+    return { initialTunnels: data.tunnels, proxyUrl }
   }
 })
 
@@ -37,8 +38,17 @@ function formatDuration(connectedAt: string): string {
   return `${seconds}s`
 }
 
+function getTunnelUrl(subdomain: string, proxyUrl: string): string {
+  try {
+    const url = new URL(proxyUrl)
+    return `${url.protocol}//${subdomain}.${url.host}`
+  } catch {
+    return `http://${subdomain}.localhost:8080`
+  }
+}
+
 function TunnelsDashboard() {
-  const { initialTunnels } = Route.useLoaderData()
+  const { initialTunnels, proxyUrl } = Route.useLoaderData()
   const router = useRouter()
   const [tunnels, setTunnels] = useState<ActiveTunnel[]>(initialTunnels)
   const [isLoading, setIsLoading] = useState(false)
@@ -165,7 +175,7 @@ function TunnelsDashboard() {
                     <TableCell className="font-medium">
                       <a
                         className="text-primary hover:underline"
-                        href={`http://${tunnel.subdomain}.localhost:8080`}
+                        href={getTunnelUrl(tunnel.subdomain, proxyUrl)}
                         rel="noopener noreferrer"
                         target="_blank"
                       >
