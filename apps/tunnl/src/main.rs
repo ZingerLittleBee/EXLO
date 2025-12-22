@@ -19,8 +19,8 @@ use log::info;
 use russh::server::Server;
 
 use tunnl::{
-    load_or_generate_server_key, run_http_proxy, run_management_api, AppState, DeviceFlowClient,
-    DeviceFlowConfig, TunnelServer,
+    load_or_generate_server_key, run_http_proxy, run_management_api, validate_config, AppState,
+    DeviceFlowClient, DeviceFlowConfig, TunnelServer,
 };
 
 #[tokio::main]
@@ -31,6 +31,13 @@ async fn main() -> anyhow::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("🚀 Starting SSH Reverse Tunnel Server with Device Flow...");
+
+    // Validate configuration at startup
+    if let Err(e) = validate_config() {
+        log::error!("Configuration error: {}", e);
+        std::process::exit(1);
+    }
+    info!("✓ Configuration validated");
 
     // Initialize shared state
     let state = Arc::new(AppState::new());
@@ -62,7 +69,8 @@ async fn main() -> anyhow::Result<()> {
     let ssh_addr = format!("0.0.0.0:{}", ssh_port);
     let http_port = std::env::var("HTTP_PORT").unwrap_or_else(|_| "8080".to_string());
     let http_addr = format!("0.0.0.0:{}", http_port);
-    let mgmt_addr = "0.0.0.0:9090";
+    let mgmt_port = std::env::var("MGMT_PORT").unwrap_or_else(|_| "9090".to_string());
+    let mgmt_addr = format!("0.0.0.0:{}", mgmt_port);
 
     info!("═══════════════════════════════════════════════════════════════");
     info!("SSH server:     {}", ssh_addr);
@@ -82,10 +90,10 @@ async fn main() -> anyhow::Result<()> {
         result = server.run_on_address(config, ssh_addr) => {
             result?;
         }
-        result = run_http_proxy(http_state, http_addr) => {
+        result = run_http_proxy(http_state, &http_addr) => {
             result?;
         }
-        result = run_management_api(mgmt_state, mgmt_addr) => {
+        result = run_management_api(mgmt_state, &mgmt_addr) => {
             result?;
         }
     }

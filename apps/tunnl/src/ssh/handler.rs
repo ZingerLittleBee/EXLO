@@ -12,6 +12,7 @@ use russh::{Channel, ChannelId, Disconnect};
 use russh_keys::HashAlg;
 use tokio::sync::{oneshot, Mutex};
 
+use crate::config::{get_tunnel_url, is_development};
 use crate::device::{DeviceFlowClient, RegisterTunnelRequest, generate_activation_code};
 use crate::error::TunnelError;
 use crate::state::{AppState, TunnelInfo};
@@ -265,16 +266,7 @@ impl SshHandler {
 
                                 match app_state.register_tunnel(tunnel_info).await {
                                     Ok(()) => {
-                                let proxy_url = std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
-                                        let tunnel_url = if let Some(stripped) = proxy_url.strip_prefix("http://") {
-                                            let host = stripped.split('/').next().unwrap_or(stripped);
-                                            format!("http://{}.{}", subdomain, host)
-                                        } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
-                                            let host = stripped.split('/').next().unwrap_or(stripped);
-                                            format!("https://{}.{}", subdomain, host)
-                                        } else {
-                                            format!("http://{}.{}", subdomain, proxy_url)
-                                        };
+                                        let tunnel_url = crate::config::get_tunnel_url(&subdomain);
                                         info!(
                                             "✓ Tunnel registered!\n\
                                              Subdomain: {}\n\
@@ -432,10 +424,10 @@ impl Handler for SshHandler {
             address, port, self.username, status
         );
 
-        // Skip auth completely if TUNNL_SKIP_AUTH is set
-        if std::env::var("TUNNL_SKIP_AUTH").is_ok() {
+        // Skip auth completely if TUNNL_SKIP_AUTH is set (development only)
+        if std::env::var("TUNNL_SKIP_AUTH").is_ok() && is_development() {
             if !self.is_verified().await {
-                warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification");
+                warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification (development mode)");
                 let mut state = self.shared_state.lock().await;
                 state.verification_status = VerificationStatus::Verified {
                     user_id: self.username.clone().unwrap_or_else(|| "dev".to_string()),
@@ -642,16 +634,7 @@ impl SshHandler {
 
         match self.state.register_tunnel(tunnel_info).await {
             Ok(()) => {
-                let proxy_url = std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
-                let tunnel_url = if let Some(stripped) = proxy_url.strip_prefix("http://") {
-                    let host = stripped.split('/').next().unwrap_or(stripped);
-                    format!("http://{}.{}", subdomain, host)
-                } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
-                    let host = stripped.split('/').next().unwrap_or(stripped);
-                    format!("https://{}.{}", subdomain, host)
-                } else {
-                    format!("http://{}.{}", subdomain, proxy_url)
-                };
+                let tunnel_url = get_tunnel_url(&subdomain);
                 info!(
                     "✓ Tunnel registered!\n\
                      Subdomain: {}\n\

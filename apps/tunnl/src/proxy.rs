@@ -12,6 +12,7 @@ use hyper_util::rt::TokioIo;
 use log::{debug, error, info, warn};
 use tokio::net::TcpListener;
 
+use crate::config::{get_proxy_url, get_tunnel_url};
 use crate::state::AppState;
 
 /// Extract subdomain from Host header.
@@ -42,22 +43,12 @@ async fn handle_http_request(
         Some(s) => s,
         None => {
             let tunnels = state.list_tunnels().await;
-            let proxy_url = std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
-            let tunnel_list: Vec<String> = tunnels.iter()
-                .map(|t| {
-                    let url = if let Some(stripped) = proxy_url.strip_prefix("http://") {
-                        let host = stripped.split('/').next().unwrap_or(stripped);
-                        format!("  - http://{}.{}", t.subdomain, host)
-                    } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
-                        let host = stripped.split('/').next().unwrap_or(stripped);
-                        format!("  - https://{}.{}", t.subdomain, host)
-                    } else {
-                        format!("  - http://{}.{}", t.subdomain, proxy_url)
-                    };
-                    url
-                })
+            let proxy_url = get_proxy_url();
+            let tunnel_list: Vec<String> = tunnels
+                .iter()
+                .map(|t| format!("  - {}", get_tunnel_url(&t.subdomain)))
                 .collect();
-            
+
             let body = if tunnel_list.is_empty() {
                 "No tunnels registered.\n\nConnect with: ssh -N -R 80:localhost:PORT -p 2222 user@server".to_string()
             } else {
@@ -67,7 +58,7 @@ async fn handle_http_request(
                     proxy_url
                 )
             };
-            
+
             return Ok(Response::builder()
                 .status(StatusCode::BAD_REQUEST)
                 .body(Full::new(Bytes::from(body)))

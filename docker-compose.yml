@@ -44,6 +44,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       PROXY_URL: ${PROXY_URL:-http://localhost:8080}
       NODE_ENV: production
     ports:
@@ -63,7 +64,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       RUST_LOG: ${RUST_LOG:-info}
-      MANAGEMENT_API_URL: http://tunnl:9090
+      RUST_ENV: production
+      API_BASE_URL: http://web:3000
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       PROXY_URL: ${PROXY_URL:-http://localhost:8080}
     ports:
       - "${SSH_PORT:-2222}:2222"
