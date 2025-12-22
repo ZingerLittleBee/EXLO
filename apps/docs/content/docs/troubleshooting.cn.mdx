@@ -62,7 +62,7 @@ Permission denied (publickey).
 
 **解决方案**：
 - 确保按提示完成浏览器认证
-- 认证有效期为 15 分钟，超时需重新连接
+- 认证有效期为 5 分钟，超时需重新连接
 
 ---
 
@@ -74,7 +74,7 @@ Permission denied (publickey).
 
 **原因**：
 - 验证码输入错误
-- 认证请求已超时（15 分钟）
+- 认证请求已超时（5 分钟）
 
 **解决方案**：
 ```bash
@@ -151,7 +151,7 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
 
 ## 断开 SSH 连接
 
-SSH 反向隧道模式下，`Ctrl+C` **不会**终止连接。
+SSH 反向隧道模式下，`Ctrl+C` 通常可以终止连接。
 
 ### 使用转义序列
 
@@ -186,5 +186,4 @@ docker compose logs -f web
 # 过滤错误日志
 docker compose logs tunnl 2>&1 | grep -i error
 ```
-
 

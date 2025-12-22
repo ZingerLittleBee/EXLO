@@ -62,7 +62,7 @@ Permission denied (publickey).
 
 **Solution**:
 - Make sure to complete browser authentication as prompted
-- Authentication expires after 15 minutes, reconnect if timed out
+- Authentication expires after 5 minutes, reconnect if timed out
 
 ---
 
@@ -74,7 +74,7 @@ Permission denied (publickey).
 
 **Cause**:
 - Verification code entered incorrectly
-- Authentication request timed out (15 minutes)
+- Authentication request timed out (5 minutes)
 
 **Solution**:
 ```bash
@@ -151,7 +151,7 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
 
 ## Disconnecting SSH Connection
 
-In SSH reverse tunnel mode, `Ctrl+C` **does not** terminate the connection.
+In SSH reverse tunnel mode, `Ctrl+C` should terminate the connection.
 
 ### Using Escape Sequence
 

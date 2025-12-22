@@ -20,13 +20,22 @@ git clone https://github.com/ZingerLittleBee/EXLO
 cd EXLO
 
 # Copy environment variable template
-cp .env.example .env
+cp .env.docker.example .env
 
 # Edit configuration
-# Set DATABASE_URL, BASE_DOMAIN, etc.
+# Set POSTGRES_*, BETTER_AUTH_SECRET, INTERNAL_API_SECRET, and API_BASE_URL
+# (If INTERNAL_API_SECRET or API_BASE_URL are missing, add them to .env)
 
 # Start services
 docker compose up -d
+```
+
+## First-Time Setup
+
+If this is a fresh install, create the initial admin account first:
+
+```
+http://your.domain/setup
 ```
 
 ## First Connection
@@ -55,7 +64,7 @@ After connecting, the terminal will display an authentication prompt:
 ╰──────────────────────────────────────────────────╯
 ```
 
-Open the link in your browser and enter the verification code to complete authentication.
+Open the link in your browser and enter the verification code to complete authentication (codes expire after 5 minutes).
 
 ### 3. Access Your Service
 
@@ -67,7 +76,7 @@ https://your-subdomain.your.domain
 
 ## Disconnect
 
-In SSH reverse tunnel mode, `Ctrl+C` won't terminate the connection. Use the following escape sequence:
+Press `Ctrl+C` to close the SSH tunnel. If you're in a nested SSH session or it doesn't exit, use the escape sequence:
 
 ```
 Press Enter, then type ~.
