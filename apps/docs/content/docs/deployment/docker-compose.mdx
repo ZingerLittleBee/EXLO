@@ -13,48 +13,90 @@ Create a `docker-compose.yml` file:
 version: '3.8'
 
 services:
-  tunnl:
-    image: ghcr.io/ZingerLittleBee/EXLO:latest
-    ports:
-      - "2222:2222"   # SSH Server
-      - "8080:8080"   # HTTP Proxy
-    volumes:
-      - ./data/server_key.pem:/app/server_key.pem
-    environment:
-      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
-      - BASE_DOMAIN=tunnl.example.com
-      - AUTH_API_URL=http://web:3000
-    depends_on:
-      db:
-        condition: service_healthy
-
-  web:
-    image: ghcr.io/ZingerLittleBee/EXLO-web:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
-      - TUNNL_API_URL=http://tunnl:9090
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
+  postgres:
     image: postgres:16-alpine
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+    container_name: exlo-postgres
     environment:
-      - POSTGRES_USER=tunnl
-      - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=tunnl
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - exlo_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tunnl"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+    networks:
+      - exlo-network
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.migrate
+    container_name: exlo-migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - exlo-network
+    restart: "no"
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: exlo-web
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      TUNNL_MANAGEMENT_API_URL: http://tunnl:9090
+      NODE_ENV: production
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - exlo-network
+
+  tunnl:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tunnl
+    container_name: exlo-tunnl
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      API_BASE_URL: ${API_BASE_URL:-http://web:3000}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      RUST_LOG: ${RUST_LOG:-info}
+    ports:
+      - "${SSH_PORT:-2222}:2222"
+      - "${PROXY_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks:
+      - exlo-network
 
 volumes:
-  postgres_data:
+  exlo_data:
+    name: exlo_data
+
+networks:
+  exlo-network:
+    name: exlo-network
+    driver: bridge
 ```
 
 ## Environment Variables
@@ -64,18 +106,25 @@ volumes:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://user:pass@host:5432/db` |
-| `BASE_DOMAIN` | Tunnel base domain | `tunnl.example.com` |
-| `AUTH_API_URL` | Web service URL for Device Flow | `http://web:3000` |
-| `SSH_PORT` | SSH server port | `2222` |
-| `HTTP_PORT` | HTTP Proxy port | `8080` |
-| `MGMT_PORT` | Management API port | `9090` |
+| `API_BASE_URL` | Web service URL for Device Flow | `http://web:3000` |
+| `INTERNAL_API_SECRET` | Shared secret for internal API calls | `your-long-random-secret` |
+| `RUST_LOG` | Rust log level | `info` |
+| `TUNNL_SKIP_AUTH` | Skip Device Flow (dev only) | `true` |
 
 ### Control Plane (web)
 
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://user:pass@host:5432/db` |
-| `TUNNL_API_URL` | Data Plane Management API | `http://tunnl:9090` |
+| `BETTER_AUTH_SECRET` | Better Auth secret (min 32 chars) | `your-auth-secret` |
+| `BETTER_AUTH_URL` | Better Auth base URL | `https://tunnl.example.com` |
+| `CORS_ORIGIN` | Allowed origin for auth | `https://tunnl.example.com` |
+| `INTERNAL_API_SECRET` | Shared secret for internal API calls | `your-long-random-secret` |
+| `TUNNL_MANAGEMENT_API_URL` | Data Plane Management API | `http://tunnl:9090` |
+
+> [!NOTE]
+> The Data Plane listens on internal ports `2222/8080/9090`. Use Docker port mappings
+> (`SSH_PORT`, `PROXY_PORT`, `WEB_PORT`, `POSTGRES_PORT`) to change host-side exposure.
 
 ## Reverse Proxy Configuration
 
@@ -166,8 +215,8 @@ services:
       - "traefik.http.services.tunnl-proxy.loadbalancer.server.port=8080"
     environment:
       - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
-      - BASE_DOMAIN=tunnl.example.com
-      - AUTH_API_URL=http://web:3000
+      - API_BASE_URL=http://web:3000
+      - INTERNAL_API_SECRET=your-long-random-secret
 
   web:
     image: ghcr.io/ZingerLittleBee/EXLO-web:latest
@@ -181,7 +230,8 @@ services:
       - "traefik.http.services.tunnl-web.loadbalancer.server.port=3000"
     environment:
       - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
-      - TUNNL_API_URL=http://tunnl:9090
+      - INTERNAL_API_SECRET=your-long-random-secret
+      - TUNNL_MANAGEMENT_API_URL=http://tunnl:9090
 
   db:
     image: postgres:16-alpine

@@ -20,13 +20,22 @@ git clone https://github.com/ZingerLittleBee/EXLO
 cd EXLO
 
 # 复制环境变量模板
-cp .env.example .env
+cp .env.docker.example .env
 
 # 编辑配置
-# 设置 DATABASE_URL, BASE_DOMAIN 等
+# 设置 POSTGRES_*、BETTER_AUTH_SECRET、INTERNAL_API_SECRET 和 API_BASE_URL
+#（如果缺少 INTERNAL_API_SECRET 或 API_BASE_URL，请手动补充到 .env）
 
 # 启动服务
 docker compose up -d
+```
+
+## 首次初始化
+
+如果是全新部署，请先创建管理员账户：
+
+```
+http://your.domain/setup
 ```
 
 ## 首次连接
@@ -55,7 +64,7 @@ ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
 ╰──────────────────────────────────────────────────╯
 ```
 
-在浏览器中打开链接并输入验证码完成认证。
+在浏览器中打开链接并输入验证码完成认证（验证码 5 分钟过期）。
 
 ### 3. 访问你的服务
 
@@ -67,10 +76,8 @@ https://your-subdomain.your.domain
 
 ## 断开连接
 
-SSH 反向隧道模式下 `Ctrl+C` 不会终止连接。使用以下转义序列：
+按下 `Ctrl+C` 结束 SSH 隧道。如果是在嵌套 SSH 或无法退出，请使用以下转义序列：
 
 ```
 按下 Enter，然后输入 ~.
 ```
-
-

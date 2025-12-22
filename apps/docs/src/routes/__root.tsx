@@ -41,7 +41,12 @@ export const Route = createRootRoute({
         title: 'EXLO Documentation'
       }
     ],
-    links: [{ rel: 'stylesheet', href: appCss }]
+    links: [
+      { rel: 'stylesheet', href: appCss },
+      { rel: 'icon', href: '/favicon.ico', sizes: 'any' },
+      { rel: 'icon', href: '/logo.svg', type: 'image/svg+xml' },
+      { rel: 'apple-touch-icon', href: '/apple-icon.png' }
+    ]
   }),
   component: RootComponent
 })

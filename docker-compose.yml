@@ -1,6 +1,36 @@
 name: exlo
 
 services:
+  traefik:
+    image: traefik:v3.2
+    container_name: exlo-traefik
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+      # HTTP to HTTPS redirect
+      - "--entryPoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entryPoints.web.http.redirections.entryPoint.scheme=https"
+      # Let's Encrypt with DNS Challenge (for wildcard certs)
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=${DNS_PROVIDER:-cloudflare}"
+    environment:
+      # Cloudflare DNS credentials (change for other providers)
+      CF_API_EMAIL: ${CF_API_EMAIL}
+      CF_DNS_API_TOKEN: ${CF_DNS_API_TOKEN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik_letsencrypt:/letsencrypt
+    restart: unless-stopped
+    networks:
+      - exlo-network
+
   postgres:
     image: postgres:16-alpine
     container_name: exlo-postgres
@@ -8,8 +38,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "${POSTGRES_PORT}:5432"
+    # ports:
+    #   - "${POSTGRES_PORT}:5432"  # Uncomment for local debugging only
     volumes:
       - exlo_data:/var/lib/postgresql/data
     healthcheck:
@@ -43,12 +73,18 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      BETTER_AUTH_URL: https://${DOMAIN}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      PROXY_URL: ${PROXY_URL:-http://localhost:8080}
+      CORS_ORIGIN: https://${DOMAIN}
       NODE_ENV: production
-    ports:
-      - "${WEB_PORT:-3000}:3000"
+    expose:
+      - "3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.web.rule=Host(`${DOMAIN}`)"
+      - "traefik.http.routers.web.entrypoints=websecure"
+      - "traefik.http.routers.web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.web.loadbalancer.server.port=3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -67,10 +103,21 @@ services:
       RUST_ENV: production
       API_BASE_URL: http://web:3000
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      PROXY_URL: ${PROXY_URL:-http://localhost:8080}
+      PROXY_URL: https://${TUNNEL_DOMAIN}
     ports:
       - "${SSH_PORT:-2222}:2222"
-      - "8080:8080"
+    expose:
+      - "8080"
+      - "9090"
+    labels:
+      - "traefik.enable=true"
+      # Traefik v3 syntax for wildcard subdomain matching
+      - "traefik.http.routers.tunnl.rule=HostRegexp(`^.+\\.${TUNNEL_DOMAIN}$$`)"
+      - "traefik.http.routers.tunnl.entrypoints=websecure"
+      - "traefik.http.routers.tunnl.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tunnl.tls.domains[0].main=${TUNNEL_DOMAIN}"
+      - "traefik.http.routers.tunnl.tls.domains[0].sans=*.${TUNNEL_DOMAIN}"
+      - "traefik.http.services.tunnl.loadbalancer.server.port=8080"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -81,6 +128,8 @@ services:
 volumes:
   exlo_data:
     name: exlo_data
+  traefik_letsencrypt:
+    name: traefik_letsencrypt
 
 networks:
   exlo-network:

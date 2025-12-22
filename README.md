@@ -2,6 +2,91 @@
 
 A self-hosted, open-source alternative to ngrok/tunnl.gg, designed for privacy and control.
 
+[中文说明](README.zh-CN.md) · [Disclaimer](DISCLAIMER.md)
+
+## Quickstart (Docker)
+
+1. Copy the example env file:
+
+```bash
+cp .env.docker.example .env
+```
+
+2. Edit `.env` and set strong secrets (especially `POSTGRES_PASSWORD` and `BETTER_AUTH_SECRET`).
+3. Build and start all services:
+
+```bash
+docker compose up -d --build
+```
+
+4. Open the dashboard at `http://localhost:3000`.
+5. Create a tunnel:
+
+```bash
+ssh -N -R 80:localhost:3000 -p 2222 test@localhost
+```
+
+6. Visit your tunnel (subdomain is shown in logs or dashboard):
+
+```bash
+curl -H "Host: <subdomain>.localhost" http://localhost:8080/
+```
+
+## Local Development
+
+1. Install dependencies:
+
+```bash
+bun install
+```
+
+2. Start Postgres (dev DB):
+
+```bash
+bun run db:start
+```
+
+3. Configure the web app:
+
+```bash
+cp apps/web/.env.example apps/web/.env
+```
+
+Set in `apps/web/.env` (example for the local DB):
+
+```
+DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo
+BETTER_AUTH_SECRET=your-auth-secret-min-32-chars
+BETTER_AUTH_URL=http://localhost:3000
+CORS_ORIGIN=http://localhost:3000
+```
+
+4. Apply schema:
+
+```bash
+bun run db:push
+```
+
+5. Run the web dashboard:
+
+```bash
+bun run dev:web
+```
+
+6. Run the SSH reverse tunnel server:
+
+```bash
+cd apps/tunnl
+RUST_LOG=info DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo cargo run
+```
+
+## Ports
+
+- Web dashboard: `3000`
+- SSH server: `2222`
+- HTTP proxy: `8080`
+- Management API (internal): `9090`
+
 ## Project Manifesto
 
 1.  **Self-Hosted & Private**: Strictly for private deployment. No public sign-ups. Your infrastructure, your rules.
@@ -64,3 +149,11 @@ The system is composed of two primary containers operating in a "Sidecar" patter
 - [x] SSH session polling for verification status.
 - [x] Loading spinner animation during authorization.
 - [x] Success/error UI boxes with styled output.
+
+## License
+
+This project is licensed under the GNU Affero General Public License v3. See `LICENSE`.
+
+## Disclaimer
+
+Use of this software is at your own risk. See `DISCLAIMER.md`.
