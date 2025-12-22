@@ -44,7 +44,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       NODE_ENV: production
     ports:
       - "${WEB_PORT:-3000}:3000"
