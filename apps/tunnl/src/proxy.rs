@@ -42,16 +42,29 @@ async fn handle_http_request(
         Some(s) => s,
         None => {
             let tunnels = state.list_tunnels().await;
+            let proxy_url = std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
             let tunnel_list: Vec<String> = tunnels.iter()
-                .map(|t| format!("  - http://{}.localhost:8080", t.subdomain))
+                .map(|t| {
+                    let url = if let Some(stripped) = proxy_url.strip_prefix("http://") {
+                        let host = stripped.split('/').next().unwrap_or(stripped);
+                        format!("  - http://{}.{}", t.subdomain, host)
+                    } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
+                        let host = stripped.split('/').next().unwrap_or(stripped);
+                        format!("  - https://{}.{}", t.subdomain, host)
+                    } else {
+                        format!("  - http://{}.{}", t.subdomain, proxy_url)
+                    };
+                    url
+                })
                 .collect();
             
             let body = if tunnel_list.is_empty() {
                 "No tunnels registered.\n\nConnect with: ssh -N -R 80:localhost:PORT -p 2222 user@server".to_string()
             } else {
                 format!(
-                    "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.localhost\" http://localhost:8080/",
-                    tunnel_list.join("\n")
+                    "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}",
+                    tunnel_list.join("\n"),
+                    proxy_url
                 )
             };
             

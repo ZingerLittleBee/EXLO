@@ -265,11 +265,21 @@ impl SshHandler {
 
                                 match app_state.register_tunnel(tunnel_info).await {
                                     Ok(()) => {
+                                let proxy_url = std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
+                                        let tunnel_url = if let Some(stripped) = proxy_url.strip_prefix("http://") {
+                                            let host = stripped.split('/').next().unwrap_or(stripped);
+                                            format!("http://{}.{}", subdomain, host)
+                                        } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
+                                            let host = stripped.split('/').next().unwrap_or(stripped);
+                                            format!("https://{}.{}", subdomain, host)
+                                        } else {
+                                            format!("http://{}.{}", subdomain, proxy_url)
+                                        };
                                         info!(
                                             "✓ Tunnel registered!\n\
                                              Subdomain: {}\n\
-                                             URL: http://{}.localhost:8080",
-                                            subdomain, subdomain
+                                             URL: {}",
+                                            subdomain, tunnel_url
                                         );
                                         shared_state.lock().await.registered_subdomains.push(subdomain.clone());
                                         created_tunnels.push((subdomain.clone(), pending.port));
@@ -632,11 +642,21 @@ impl SshHandler {
 
         match self.state.register_tunnel(tunnel_info).await {
             Ok(()) => {
+                let proxy_url = std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string());
+                let tunnel_url = if let Some(stripped) = proxy_url.strip_prefix("http://") {
+                    let host = stripped.split('/').next().unwrap_or(stripped);
+                    format!("http://{}.{}", subdomain, host)
+                } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
+                    let host = stripped.split('/').next().unwrap_or(stripped);
+                    format!("https://{}.{}", subdomain, host)
+                } else {
+                    format!("http://{}.{}", subdomain, proxy_url)
+                };
                 info!(
                     "✓ Tunnel registered!\n\
                      Subdomain: {}\n\
-                     URL: http://{}.localhost:8080",
-                    subdomain, subdomain
+                     URL: {}",
+                    subdomain, tunnel_url
                 );
                 self.shared_state.lock().await.registered_subdomains.push(subdomain);
                 Ok(true)
