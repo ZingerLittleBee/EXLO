@@ -44,7 +44,7 @@ async fn main() -> anyhow::Result<()> {
     // Configure SSH server
     let config = russh::server::Config {
         methods: russh::MethodSet::PUBLICKEY,
-        server_id: russh::SshId::Standard("SSH-2.0-EXLO-0.1.0".to_string()),
+        server_id: russh::SshId::Standard(format!("SSH-2.0-EXLO-{}", env!("CARGO_PKG_VERSION"))),
         keys: vec![key],
         inactivity_timeout: Some(std::time::Duration::from_secs(1800)),
         auth_rejection_time: std::time::Duration::from_secs(3),
@@ -55,17 +55,19 @@ async fn main() -> anyhow::Result<()> {
     let config = Arc::new(config);
     let mut server = TunnelServer::new(state.clone(), device_flow_client);
 
-    let ssh_addr = "0.0.0.0:2222";
-    let http_addr = "0.0.0.0:8080";
+    let ssh_port = std::env::var("SSH_PORT").unwrap_or_else(|_| "2222".to_string());
+    let ssh_addr = format!("0.0.0.0:{}", ssh_port);
+    let http_port = std::env::var("HTTP_PORT").unwrap_or_else(|_| "8080".to_string());
+    let http_addr = format!("0.0.0.0:{}", http_port);
     let mgmt_addr = "0.0.0.0:9090";
 
     info!("═══════════════════════════════════════════════════════════════");
     info!("SSH server:     {}", ssh_addr);
     info!("HTTP proxy:     {}", http_addr);
-    info!("Management API: {}", mgmt_addr);
+    info!("Inner Management API: {}", mgmt_addr);
     info!("═══════════════════════════════════════════════════════════════");
     info!("To create a tunnel:");
-    info!("  ssh -N -R 80:localhost:3000 -p 2222 user@yourserver.com");
+    info!("  ssh -N -R 3000:localhost:3000 -p {} user@yourserver.com", ssh_port);
     info!("");
     info!("You will see an activation URL - visit it to authorize.");
     info!("═══════════════════════════════════════════════════════════════");
