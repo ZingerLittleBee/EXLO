@@ -50,6 +50,7 @@ services:
       BETTER_AUTH_URL: http://${HOST:-localhost}:${WEB_PORT:-3000}
       CORS_ORIGIN: http://${HOST:-localhost}:${WEB_PORT:-3000}
       NODE_ENV: ${NODE_ENV:-development}
+      MANAGEMENT_API_URL: http://tunnl:9090
     ports:
       - "${WEB_PORT:-3000}:3000"
     depends_on:

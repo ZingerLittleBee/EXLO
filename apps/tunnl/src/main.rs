@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
     // Configure SSH server
     let config = russh::server::Config {
         methods: russh::MethodSet::PUBLICKEY,
-        server_id: russh::SshId::Standard(format!("SSH-1.0-EXLO-{}", env!("CARGO_PKG_VERSION"))),
+        server_id: russh::SshId::Standard(format!("SSH-2.0-EXLO_{}", env!("CARGO_PKG_VERSION"))),
         keys: vec![key],
         inactivity_timeout: Some(std::time::Duration::from_secs(1800)),
         auth_rejection_time: std::time::Duration::from_secs(3),
