@@ -56,7 +56,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       TUNNL_MANAGEMENT_API_URL: http://tunnl:9090
       NODE_ENV: production
@@ -118,7 +117,6 @@ networks:
 | `DATABASE_URL` | PostgreSQL 连接字符串 | `postgres://user:pass@host:5432/db` |
 | `BETTER_AUTH_SECRET` | Better Auth 密钥（至少 32 位） | `your-auth-secret` |
 | `BETTER_AUTH_URL` | Better Auth 基础 URL | `https://tunnl.example.com` |
-| `CORS_ORIGIN` | 认证允许的来源 | `https://tunnl.example.com` |
 | `INTERNAL_API_SECRET` | 内部 API 共享密钥 | `your-long-random-secret` |
 | `TUNNL_MANAGEMENT_API_URL` | Data Plane Management API | `http://tunnl:9090` |
 

@@ -64,7 +64,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-local-dev-secret-min-32-chars!!}
       BETTER_AUTH_URL: http://${DOMAIN:-exlo.localhost}
-      CORS_ORIGIN: http://${DOMAIN:-exlo.localhost}
       NODE_ENV: development
     expose:
       - "3000"

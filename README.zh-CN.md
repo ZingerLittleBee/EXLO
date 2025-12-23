@@ -58,7 +58,6 @@ cp apps/web/.env.example apps/web/.env
 DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo
 BETTER_AUTH_SECRET=your-auth-secret-min-32-chars
 BETTER_AUTH_URL=http://localhost:3000
-CORS_ORIGIN=http://localhost:3000
 ```
 
 4. 应用数据库结构：

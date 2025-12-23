@@ -129,7 +129,6 @@ BETTER_AUTH_URL=http://localhost:3000
 # Optional
 INTERNAL_API_SECRET=<for-rust-web-communication>
 PROXY_URL=http://localhost:8080
-CORS_ORIGIN=http://localhost:3000
 ```
 
 ## Development Flow
