@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "cp '$CONDUCTOR_ROOT_PATH/.env' . && bun i",
+    "setup": "cp $CONDUCTOR_ROOT_PATH/.env . && bun i",
     "run": ""
   }
 }
