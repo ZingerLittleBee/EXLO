@@ -14,6 +14,11 @@ help: ## Show this help
 	@echo "  1. make db-init   # First time: start database and run migrations"
 	@echo "  2. make up-build  # Start web and tunnl services with rebuild"
 	@echo "  3. make up        # Restart services without rebuild"
+	@echo ""
+	@echo "Tips:"
+	@echo "  make up-build web      # Build and start only web service"
+	@echo "  make up-build tunnl    # Build and start only tunnl service"
+	@echo "  make up-build web tunnl # Build and start both (same as no args)"
 
 db-init: ## Start database and run migrations (first time setup)
 	@echo "Starting PostgreSQL and running migrations..."
@@ -23,12 +28,16 @@ db-init: ## Start database and run migrations (first time setup)
 up: ## Start web and tunnl services (without rebuild)
 	@echo "Starting web and tunnl services..."
 	docker compose -f $(COMPOSE_FILE) up -d web tunnl
-	@echo "Services started!
+	@echo "Services started!"
 
-up-build: ## Start web and tunnl services (with rebuild)
-	@echo "Building and starting web and tunnl services..."
-	docker compose -f $(COMPOSE_FILE) up -d --build web tunnl
-	@echo "Services started!
+up-build: ## Start services with rebuild (usage: make up-build [web] [tunnl])
+	$(eval SERVICES := $(if $(filter web tunnl,$(MAKECMDGOALS)),$(filter web tunnl,$(MAKECMDGOALS)),web tunnl))
+	@echo "Building and starting services: $(SERVICES)..."
+	docker compose -f $(COMPOSE_FILE) up -d --build $(SERVICES)
+	@echo "Services started!"
+
+web tunnl:
+	@:
 
 down: ## Stop all services
 	@echo "Stopping all services..."
