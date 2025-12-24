@@ -58,7 +58,6 @@ Set in `apps/web/.env` (example for the local DB):
 DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo
 BETTER_AUTH_SECRET=your-auth-secret-min-32-chars
 BETTER_AUTH_URL=http://localhost:3000
-CORS_ORIGIN=http://localhost:3000
 ```
 
 4. Apply schema:

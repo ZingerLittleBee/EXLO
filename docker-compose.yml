@@ -75,7 +75,6 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: https://${DOMAIN}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      CORS_ORIGIN: https://${DOMAIN}
       NODE_ENV: production
     expose:
       - "3000"

@@ -4,20 +4,23 @@
 
 name: exlo-simple
 
+x-db: &db
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: exlo-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-exlo}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - exlo_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-exlo}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -30,8 +33,10 @@ services:
       context: .
       dockerfile: docker/Dockerfile.migrate
     container_name: exlo-migrate
+    profiles:
+      - db
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
+      <<: *db
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,17 +50,12 @@ services:
       dockerfile: docker/Dockerfile.web
     container_name: exlo-web
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-simple-dev-secret-min-32-chars!!}
-      BETTER_AUTH_URL: http://${HOST:-localhost}:${WEB_PORT:-3000}
-      CORS_ORIGIN: http://${HOST:-localhost}:${WEB_PORT:-3000}
-      NODE_ENV: ${NODE_ENV:-development}
+      <<: *db
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${HOMEPAGE_URL}
       MANAGEMENT_API_URL: http://tunnl:9090
     ports:
-      - "${WEB_PORT:-3000}:3000"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
+      - "3000:3000"
     restart: unless-stopped
     networks:
       - exlo-network
@@ -66,19 +66,16 @@ services:
       dockerfile: docker/Dockerfile.tunnl
     container_name: exlo-tunnl
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
+      <<: *db
       RUST_LOG: ${RUST_LOG:-debug}
       RUST_ENV: ${RUST_ENV:-development}
-      API_BASE_URL: http://web:3000
-      PROXY_URL: http://${HOST:-localhost}:${PROXY_PORT:-8080}
+      API_BASE_URL: ${HOMEPAGE_URL}
+      PROXY_URL: ${PROXY_URL}
     ports:
-      - "${SSH_PORT:-2222}:2222"
-      - "${PROXY_PORT:-8080}:8080"
+      - "2222:2222"
+      - "8080:8080"
     expose:
       - "9090"
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - exlo-network
