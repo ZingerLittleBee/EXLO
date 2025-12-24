@@ -67,6 +67,8 @@ pub fn create_activation_box(code: &str, url: &str) -> String {
     let spinner_line = format!("{} Waiting for authorization...", spinner_frame(0));
 
     let mut output = String::new();
+    // Clear entire screen and move cursor to top
+    output.push_str("\x1B[2J\x1B[H");
     output.push_str("\r\n");
     output.push_str(&top_border());
     output.push_str(&centered_line(&title));
@@ -95,7 +97,7 @@ pub fn create_spinner_update(frame_index: usize) -> String {
 }
 
 /// Number of lines in the activation box (for clearing)
-pub const ACTIVATION_BOX_LINES: usize = 12;
+pub const ACTIVATION_BOX_LINES: usize = 14;
 
 /// Create the success box shown after tunnel activation
 pub fn create_success_box(username: &str, tunnel_urls: &[(String, u32)]) -> String {
@@ -109,13 +111,14 @@ pub fn create_success_box(username: &str, tunnel_urls: &[(String, u32)]) -> Stri
     };
     let welcome_styled = format!("Welcome back, {}!", style(&display_user).bold());
 
-    let disconnect_hint = format!("{}", style("Press Ctrl+C to disconnect").dim());
+    let disconnect_hint = format!("{}", style("Press Esc double to disconnect").dim());
 
     let mut output = String::new();
 
-    // Move up and clear the old box
-    output.push_str(&format!("\x1B[{}A\x1B[0J", ACTIVATION_BOX_LINES));
+    // Clear entire screen and move cursor to top
+    output.push_str("\x1B[2J\x1B[H");
 
+    output.push_str("\r\n");
     output.push_str(&top_border());
     output.push_str(&centered_line(&title));
     output.push_str(&middle_border());
@@ -172,6 +175,52 @@ pub fn create_error_box(reason: &str) -> String {
     output.push_str("\r\n");
 
     output
+}
+
+/// Create an error box for port connection failure
+pub fn create_port_error_box(port: u32, address: &str) -> String {
+    let title = format!("{} CONNECTION FAILED", style("✗").red());
+
+    let error_line = format!(
+        "{} Cannot connect to {}:{}",
+        style("✗").red(),
+        address,
+        port
+    );
+
+    let mut output = String::new();
+
+    // Move up and clear the old box
+    output.push_str(&format!("\x1B[{}A\x1B[0J", ACTIVATION_BOX_LINES));
+
+    output.push_str(&top_border());
+    output.push_str(&centered_line(&title));
+    output.push_str(&middle_border());
+    output.push_str(&empty_line());
+    output.push_str(&content_line(&error_line));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Make sure your local service is running:"));
+    let hint = format!("  {} your-app --port {}", style("$").dim(), port);
+    output.push_str(&content_line(&hint));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Connection will close in 3 seconds..."));
+    output.push_str(&bottom_border());
+    output.push_str("\r\n");
+
+    output
+}
+
+/// Create a hint message for ESC key press
+pub fn create_esc_hint() -> String {
+    format!(
+        "\r\n{} Press ESC again to disconnect...\r\n",
+        style("⚠").yellow()
+    )
+}
+
+/// Clear the ESC hint (move up and clear line)
+pub fn clear_esc_hint() -> String {
+    "\x1B[2A\x1B[0J".to_string()
 }
 
 #[cfg(test)]
