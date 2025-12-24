@@ -95,7 +95,7 @@ pub fn create_spinner_update(frame_index: usize) -> String {
 }
 
 /// Number of lines in the activation box (for clearing)
-pub const ACTIVATION_BOX_LINES: usize = 12;
+pub const ACTIVATION_BOX_LINES: usize = 14;
 
 /// Create the success box shown after tunnel activation
 pub fn create_success_box(username: &str, tunnel_urls: &[(String, u32)]) -> String {
