@@ -20,4 +20,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  EXLO_postgres_data:
+  exlo_postgres_data:
