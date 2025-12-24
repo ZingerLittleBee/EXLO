@@ -3,7 +3,7 @@
 
 COMPOSE_FILE := docker-compose.simple.yml
 
-.PHONY: help db-init up up-build down logs ps clean
+.PHONY: help init-db up up-build down logs ps clean
 
 help: ## Show this help
 	@echo "Available commands:"
@@ -20,7 +20,7 @@ help: ## Show this help
 	@echo "  make up-build tunnl    # Build and start only tunnl service"
 	@echo "  make up-build web tunnl # Build and start both (same as no args)"
 
-db-init: ## Start database and run migrations (first time setup)
+init-db: ## Start database and run migrations (first time setup)
 	@echo "Starting PostgreSQL and running migrations..."
 	docker compose -f $(COMPOSE_FILE) --profile db up -d
 	@echo "Database initialized successfully!"

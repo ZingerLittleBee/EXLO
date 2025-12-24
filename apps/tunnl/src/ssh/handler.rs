@@ -253,6 +253,41 @@ impl SshHandler {
                                     format!("tunnel-{:06x}-{}", random_part, state.subdomain_counter)
                                 };
 
+                                // Probe the local port before registering the tunnel
+                                let probe_result = handle
+                                    .channel_open_forwarded_tcpip(
+                                        &pending.address,
+                                        pending.port,
+                                        "127.0.0.1",
+                                        12345,
+                                    )
+                                    .await;
+
+                                match probe_result {
+                                    Ok(channel) => {
+                                        // Close the probe channel immediately
+                                        drop(channel);
+                                        info!("Port probe succeeded for {}:{}", pending.address, pending.port);
+                                    }
+                                    Err(e) => {
+                                        warn!("Port probe failed for {}:{}: {:?}", pending.address, pending.port, e);
+
+                                        // Send error message to SSH client
+                                        if let Some(channel_id) = session_channel_id {
+                                            let error_msg = terminal_ui::create_port_error_box(pending.port, &pending.address);
+                                            let _ = handle.data(channel_id, error_msg.into_bytes().into()).await;
+                                        }
+
+                                        // Wait 3 seconds before disconnecting
+                                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+                                        // Disconnect the session
+                                        let reason = format!("Local service not available on {}:{}", pending.address, pending.port);
+                                        let _ = handle.disconnect(Disconnect::ByApplication, reason, "en".to_string()).await;
+                                        return;
+                                    }
+                                }
+
                                 let tunnel_info = TunnelInfo {
                                     subdomain: subdomain.clone(),
                                     handle: handle.clone(),

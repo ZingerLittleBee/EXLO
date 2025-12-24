@@ -174,6 +174,39 @@ pub fn create_error_box(reason: &str) -> String {
     output
 }
 
+/// Create an error box for port connection failure
+pub fn create_port_error_box(port: u32, address: &str) -> String {
+    let title = format!("{} CONNECTION FAILED", style("✗").red());
+
+    let error_line = format!(
+        "{} Cannot connect to {}:{}",
+        style("✗").red(),
+        address,
+        port
+    );
+
+    let mut output = String::new();
+
+    // Move up and clear the old box
+    output.push_str(&format!("\x1B[{}A\x1B[0J", ACTIVATION_BOX_LINES));
+
+    output.push_str(&top_border());
+    output.push_str(&centered_line(&title));
+    output.push_str(&middle_border());
+    output.push_str(&empty_line());
+    output.push_str(&content_line(&error_line));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Make sure your local service is running:"));
+    let hint = format!("  {} your-app --port {}", style("$").dim(), port);
+    output.push_str(&content_line(&hint));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Connection will close in 3 seconds..."));
+    output.push_str(&bottom_border());
+    output.push_str("\r\n");
+
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
