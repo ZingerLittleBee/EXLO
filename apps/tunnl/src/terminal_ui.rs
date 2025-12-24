@@ -67,6 +67,8 @@ pub fn create_activation_box(code: &str, url: &str) -> String {
     let spinner_line = format!("{} Waiting for authorization...", spinner_frame(0));
 
     let mut output = String::new();
+    // Clear entire screen and move cursor to top
+    output.push_str("\x1B[2J\x1B[H");
     output.push_str("\r\n");
     output.push_str(&top_border());
     output.push_str(&centered_line(&title));
@@ -113,9 +115,10 @@ pub fn create_success_box(username: &str, tunnel_urls: &[(String, u32)]) -> Stri
 
     let mut output = String::new();
 
-    // Move up and clear the old box
-    output.push_str(&format!("\x1B[{}A\x1B[0J", ACTIVATION_BOX_LINES));
+    // Clear entire screen and move cursor to top
+    output.push_str("\x1B[2J\x1B[H");
 
+    output.push_str("\r\n");
     output.push_str(&top_border());
     output.push_str(&centered_line(&title));
     output.push_str(&middle_border());
