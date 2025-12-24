@@ -109,7 +109,7 @@ pub fn create_success_box(username: &str, tunnel_urls: &[(String, u32)]) -> Stri
     };
     let welcome_styled = format!("Welcome back, {}!", style(&display_user).bold());
 
-    let disconnect_hint = format!("{}", style("Press Ctrl+C to disconnect").dim());
+    let disconnect_hint = format!("{}", style("Press Esc double to disconnect").dim());
 
     let mut output = String::new();
 
@@ -205,6 +205,19 @@ pub fn create_port_error_box(port: u32, address: &str) -> String {
     output.push_str("\r\n");
 
     output
+}
+
+/// Create a hint message for ESC key press
+pub fn create_esc_hint() -> String {
+    format!(
+        "\r\n{} Press ESC again to disconnect...\r\n",
+        style("⚠").yellow()
+    )
+}
+
+/// Clear the ESC hint (move up and clear line)
+pub fn clear_esc_hint() -> String {
+    "\x1B[2A\x1B[0J".to_string()
 }
 
 #[cfg(test)]

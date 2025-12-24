@@ -35,6 +35,10 @@ struct SharedHandlerState {
     session_handle: Option<Handle>,
     /// Session channel ID (set when session channel is opened)
     session_channel_id: Option<ChannelId>,
+    /// Whether ESC was pressed once (for double-ESC to disconnect)
+    esc_pressed: bool,
+    /// Timestamp of last ESC press for timeout
+    last_esc_time: Option<std::time::Instant>,
 }
 
 /// Device Flow verification status
@@ -80,6 +84,8 @@ impl SshHandler {
             subdomain_counter: 0,
             session_handle: None,
             session_channel_id: None,
+            esc_pressed: false,
+            last_esc_time: None,
         }));
         Self {
             state,
@@ -578,7 +584,61 @@ impl Handler for SshHandler {
         session: &mut Session,
     ) -> Result<(), Self::Error> {
         debug!("Data received on channel {:?}: {} bytes", channel, data.len());
-        session.data(channel, data.to_vec().into())?;
+
+        // Check for ESC key (ASCII 27)
+        if data.contains(&27) {
+            let mut state = self.shared_state.lock().await;
+            let now = std::time::Instant::now();
+
+            // Check if this is a double ESC (within 2 seconds)
+            if state.esc_pressed {
+                if let Some(last_time) = state.last_esc_time {
+                    if now.duration_since(last_time).as_secs() < 2 {
+                        // Double ESC - disconnect
+                        drop(state);
+                        info!("Double ESC detected, disconnecting...");
+                        if let Some(handle) = &self.session_handle {
+                            let _ = handle.disconnect(
+                                Disconnect::ByApplication,
+                                "Disconnected by user".to_string(),
+                                "en".to_string(),
+                            ).await;
+                        }
+                        return Ok(());
+                    }
+                }
+            }
+
+            // First ESC or timeout - show hint
+            state.esc_pressed = true;
+            state.last_esc_time = Some(now);
+            drop(state);
+
+            // Send hint message
+            let hint = terminal_ui::create_esc_hint();
+            session.data(channel, hint.into_bytes().into())?;
+
+            // Spawn task to clear hint after 2 seconds if no second ESC
+            let shared_state = self.shared_state.clone();
+            let handle = self.session_handle.clone();
+            let channel_id = channel;
+            tokio::spawn(async move {
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                let mut state = shared_state.lock().await;
+                if state.esc_pressed {
+                    state.esc_pressed = false;
+                    state.last_esc_time = None;
+                    // Clear the hint
+                    if let Some(h) = handle {
+                        let clear = terminal_ui::clear_esc_hint();
+                        let _ = h.data(channel_id, clear.into_bytes().into()).await;
+                    }
+                }
+            });
+
+            return Ok(());
+        }
+
         Ok(())
     }
 
