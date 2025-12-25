@@ -151,6 +151,15 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
 
 ## 断开 SSH 连接
 
+### 双击 ESC（推荐）
+
+在隧道终端中快速双击 `ESC` 键即可断开连接。
+
+> [!TIP]
+> 第一次按 ESC 会显示提示信息，2 秒内再次按 ESC 确认断开。
+
+### 使用 Ctrl+C
+
 SSH 反向隧道模式下，`Ctrl+C` 通常可以终止连接。
 
 ### 使用转义序列
@@ -168,6 +177,58 @@ SSH 反向隧道模式下，`Ctrl+C` 通常可以终止连接。
 1. 登录 Web Dashboard
 2. 导航到隧道列表
 3. 点击对应隧道的 "断开" 按钮
+
+---
+
+## 断线重连问题
+
+### 重连后需要重新认证
+
+**现象**：断线重连后，仍然需要完成 Device Flow 认证。
+
+**可能原因**：
+
+1. **超过 30 分钟**：认证缓存有效期为 30 分钟
+2. **更换了设备/SSH 密钥**：重连识别基于 SSH 公钥指纹
+
+**解决方案**：
+- 如果经常需要重连，建议使用 `autossh` 保持连接
+- 确保使用相同的 SSH 密钥
+
+### 重连后子域名变了
+
+**现象**：断线重连后，分配了新的子域名。
+
+**可能原因**：
+- 认证缓存已过期（超过 30 分钟）
+- 使用了不同的 SSH 密钥
+
+**解决方案**：
+- 使用 `autossh` 保持长连接，避免断线
+- 30 分钟内重连可保持相同子域名
+
+### autossh 无法自动重连
+
+**现象**：使用 autossh 后，断线不会自动重连。
+
+**排查步骤**：
+
+1. 确保使用正确的参数：
+   ```bash
+   autossh -M 0 \
+     -o "ServerAliveInterval=30" \
+     -o "ServerAliveCountMax=3" \
+     -o "ExitOnForwardFailure=yes" \
+     -R 80:localhost:3000 -p 2222 user@your.domain
+   ```
+
+2. 检查 autossh 日志：
+   ```bash
+   export AUTOSSH_DEBUG=1
+   autossh -M 0 ...
+   ```
+
+3. 确保本地服务正在运行（`ExitOnForwardFailure=yes` 会在转发失败时退出）
 
 ---
 
