@@ -151,6 +151,15 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
 
 ## Disconnecting SSH Connection
 
+### Double-press ESC (Recommended)
+
+Double-press the `ESC` key in the tunnel terminal to disconnect.
+
+> [!TIP]
+> The first ESC press shows a hint message. Press ESC again within 2 seconds to confirm disconnect.
+
+### Using Ctrl+C
+
 In SSH reverse tunnel mode, `Ctrl+C` should terminate the connection.
 
 ### Using Escape Sequence
@@ -168,6 +177,58 @@ In SSH reverse tunnel mode, `Ctrl+C` should terminate the connection.
 1. Login to Web Dashboard
 2. Navigate to tunnel list
 3. Click "Disconnect" button for the corresponding tunnel
+
+---
+
+## Reconnection Issues
+
+### Need to Re-authenticate After Reconnect
+
+**Symptom**: After reconnecting, Device Flow authentication is required again.
+
+**Possible Causes**:
+
+1. **Over 30 minutes**: Authentication cache expires after 30 minutes
+2. **Changed device/SSH key**: Reconnection is based on SSH public key fingerprint
+
+**Solution**:
+- Use `autossh` to maintain persistent connections
+- Ensure you're using the same SSH key
+
+### Subdomain Changed After Reconnect
+
+**Symptom**: A new subdomain is assigned after reconnecting.
+
+**Possible Causes**:
+- Authentication cache expired (over 30 minutes)
+- Different SSH key used
+
+**Solution**:
+- Use `autossh` to maintain persistent connections
+- Reconnect within 30 minutes to preserve the same subdomain
+
+### autossh Not Auto-Reconnecting
+
+**Symptom**: Using autossh but it doesn't automatically reconnect.
+
+**Troubleshooting Steps**:
+
+1. Ensure correct parameters:
+   ```bash
+   autossh -M 0 \
+     -o "ServerAliveInterval=30" \
+     -o "ServerAliveCountMax=3" \
+     -o "ExitOnForwardFailure=yes" \
+     -R 80:localhost:3000 -p 2222 user@your.domain
+   ```
+
+2. Check autossh logs:
+   ```bash
+   export AUTOSSH_DEBUG=1
+   autossh -M 0 ...
+   ```
+
+3. Ensure local service is running (`ExitOnForwardFailure=yes` exits on forward failure)
 
 ---
 

@@ -76,8 +76,45 @@ https://your-subdomain.your.domain
 
 ## Disconnect
 
-Press `Ctrl+C` to close the SSH tunnel. If you're in a nested SSH session or it doesn't exit, use the escape sequence:
+Double-press `ESC` in the tunnel terminal to disconnect.
+
+You can also press `Ctrl+C` to close the SSH tunnel. If you're in a nested SSH session or it doesn't exit, use the escape sequence:
 
 ```
 Press Enter, then type ~.
 ```
+
+## Reconnection
+
+EXLO supports automatic session recovery:
+
+- **Reconnect within 30 minutes**: No need to re-authenticate via Device Flow
+- **Same subdomain preserved**: Your tunnel URL remains unchanged after reconnection
+
+> [!NOTE]
+> Reconnection is based on SSH public key fingerprint. If you switch devices or SSH keys, re-authentication is required.
+
+## Auto-Reconnect with autossh
+
+Use `autossh` for automatic reconnection on network failures:
+
+```bash
+# Install autossh
+# macOS
+brew install autossh
+# Ubuntu/Debian
+apt install autossh
+
+# Connect with autossh
+autossh -M 0 \
+  -o "ServerAliveInterval=30" \
+  -o "ServerAliveCountMax=3" \
+  -o "ExitOnForwardFailure=yes" \
+  -R 80:localhost:3000 -p 2222 user@your.domain
+```
+
+Parameter explanation:
+- `-M 0`: Use SSH's built-in keepalive (ServerAlive)
+- `ServerAliveInterval=30`: Send heartbeat every 30 seconds
+- `ServerAliveCountMax=3`: Reconnect after 3 consecutive failures
+- `ExitOnForwardFailure=yes`: Exit on forward failure (allows autossh to retry)

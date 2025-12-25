@@ -35,8 +35,11 @@ init-dev-db: ## Start dev database and push schema
 dev-web: ## Run web in dev mode
 	bun dev:web
 
+dev-docs: ## Run docs in dev mode
+	bun dev:docs
+
 dev-tunnl: ## Run tunnl in dev mode
-	cd apps/tunnl && RUST_LOG=debug cargo run
+	cd apps/tunnl && RUST_LOG=info cargo run
 
 up: ## Start web and tunnl services (without rebuild)
 	@echo "Starting web and tunnl services..."
