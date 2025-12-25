@@ -39,6 +39,10 @@ struct SharedHandlerState {
     esc_pressed: bool,
     /// Timestamp of last ESC press for timeout
     last_esc_time: Option<std::time::Instant>,
+    /// Last subdomain from previous session (for reconnection)
+    last_subdomain: Option<String>,
+    /// Port for the reconnect message (set when tunnel created before session channel opens)
+    pending_reconnect_port: Option<u32>,
 }
 
 /// Device Flow verification status
@@ -68,6 +72,8 @@ pub struct SshHandler {
     poll_cancel: Option<oneshot::Sender<()>>,
     /// Shared state accessible from polling task
     shared_state: Arc<Mutex<SharedHandlerState>>,
+    /// Public key fingerprint for this connection
+    public_key_fingerprint: Option<String>,
 }
 
 impl SshHandler {
@@ -86,6 +92,8 @@ impl SshHandler {
             session_channel_id: None,
             esc_pressed: false,
             last_esc_time: None,
+            last_subdomain: None,
+            pending_reconnect_port: None,
         }));
         Self {
             state,
@@ -97,6 +105,7 @@ impl SshHandler {
             session_id,
             poll_cancel: None,
             shared_state,
+            public_key_fingerprint: None,
         }
     }
 
@@ -105,6 +114,53 @@ impl SshHandler {
         state.subdomain_counter += 1;
         let random_part: u32 = rand_simple();
         format!("tunnel-{:06x}-{}", random_part, state.subdomain_counter)
+    }
+
+    /// Send reconnect message to client terminal
+    async fn send_reconnect_message(&self, port: u32) {
+        let (user_id, tunnels) = {
+            let state = self.shared_state.lock().await;
+            let user_id = match &state.verification_status {
+                VerificationStatus::Verified { user_id } => user_id.clone(),
+                _ => "unknown".to_string(),
+            };
+            let tunnels: Vec<(String, u32)> = state
+                .registered_subdomains
+                .iter()
+                .map(|s| (s.clone(), port))
+                .collect();
+            (user_id, tunnels)
+        };
+
+        if tunnels.is_empty() {
+            return;
+        }
+
+        let message = terminal_ui::create_reconnect_box(&user_id, &tunnels);
+
+        info!(
+            "send_reconnect_message: session_handle={}, session_channel_id={:?}",
+            self.session_handle.is_some(),
+            self.session_channel_id
+        );
+
+        // Try session channel first
+        if let (Some(handle), Some(channel_id)) = (&self.session_handle, self.session_channel_id) {
+            info!("Sending reconnect message to channel {:?}", channel_id);
+            if let Err(e) = handle.data(channel_id, message.into_bytes().into()).await {
+                warn!("Failed to send reconnect message via session channel: {:?}", e);
+            } else {
+                info!("Reconnect message sent to client");
+                return;
+            }
+        }
+
+        // Session channel not ready yet, save port for later
+        {
+            let mut state = self.shared_state.lock().await;
+            state.pending_reconnect_port = Some(port);
+            info!("Session channel not ready, deferring reconnect message (port={})", port);
+        }
     }
 
     async fn cleanup_tunnels(&self) {
@@ -191,6 +247,7 @@ impl SshHandler {
         let shared_state = self.shared_state.clone();
         let app_state = self.state.clone();
         let peer_addr = self.peer_addr;
+        let public_key_fingerprint = self.public_key_fingerprint.clone();
 
         tokio::spawn(async move {
             let mut frame_idx = 0;
@@ -316,6 +373,11 @@ impl SshHandler {
                                         );
                                         shared_state.lock().await.registered_subdomains.push(subdomain.clone());
                                         created_tunnels.push((subdomain.clone(), pending.port));
+
+                                        // Save verified key with subdomain for reconnection
+                                        if let Some(ref fingerprint) = public_key_fingerprint {
+                                            app_state.save_verified_key(fingerprint, &user_id, Some(&subdomain)).await;
+                                        }
 
                                         // Register tunnel with web server for tracking
                                         let register_req = RegisterTunnelRequest {
@@ -446,6 +508,22 @@ impl Handler for SshHandler {
         );
         
         self.username = Some(user.to_string());
+        let fingerprint_str = fingerprint.to_string();
+        self.public_key_fingerprint = Some(fingerprint_str.clone());
+
+        // Check if this public key was previously verified (within TTL)
+        if let Some(verified_key) = self.state.get_verified_key(&fingerprint_str).await {
+            info!(
+                "Public key already verified for user '{}', subdomain={:?}, skipping Device Flow",
+                verified_key.user_id, verified_key.last_subdomain
+            );
+            let mut state = self.shared_state.lock().await;
+            state.verification_status = VerificationStatus::Verified {
+                user_id: verified_key.user_id,
+            };
+            state.last_subdomain = verified_key.last_subdomain;
+        }
+
         Ok(Auth::Accept)
     }
 
@@ -477,9 +555,14 @@ impl Handler for SshHandler {
             return self.create_tunnel(address, *port).await;
         }
 
-        // If already verified, create tunnel immediately
+        // If already verified (reconnection), create tunnel immediately
         if self.is_verified().await {
-            return self.create_tunnel(address, *port).await;
+            let result = self.create_tunnel(address, *port).await?;
+            if result {
+                // Send reconnect message via session handle (works even without session channel)
+                self.send_reconnect_message(*port).await;
+            }
+            return Ok(result);
         }
 
         // Store the tunnel request as pending - it will be created after verification
@@ -552,26 +635,66 @@ impl Handler for SshHandler {
         // Also store in shared state for the polling task
         self.shared_state.lock().await.session_channel_id = Some(channel_id);
 
-        // Start Device Flow if not already started or verified
+        // Check if there's a pending reconnect message from tcpip_forward
+        let pending_port = {
+            let mut state = self.shared_state.lock().await;
+            state.pending_reconnect_port.take()
+        };
+
+        // Note: pending_reconnect_port will be handled in shell_request
+        // where the terminal is fully ready to receive data
+        if pending_port.is_some() {
+            // Re-store it since we took it out
+            let mut state = self.shared_state.lock().await;
+            state.pending_reconnect_port = pending_port;
+        }
+
+        // Check verification status for new connections
         let status = self.get_verification_status().await;
-        if matches!(status, VerificationStatus::NotStarted) {
-            match self.start_device_flow().await {
-                Ok(code) => {
-                    let url = self.device_flow_client.get_activation_url(&code);
-
-                    // Log to server
-                    info!("Device Flow started - Code: {}, URL: {}", code, url);
-
-                    // Send activation box to client
-                    let message = terminal_ui::create_activation_box(&code, &url);
+        
+        match status {
+            VerificationStatus::Verified { ref user_id } => {
+                // Already verified but no pending message - check if tunnels exist
+                let tunnels: Vec<(String, u32)> = {
+                    let state = self.shared_state.lock().await;
+                    let port = state.pending_tunnels.first().map(|t| t.port).unwrap_or(0);
+                    if !state.registered_subdomains.is_empty() {
+                        state.registered_subdomains.iter().map(|s| (s.clone(), port)).collect()
+                    } else if let Some(ref last) = state.last_subdomain {
+                        vec![(last.clone(), port)]
+                    } else {
+                        Vec::new()
+                    }
+                };
+                
+                if !tunnels.is_empty() {
+                    let message = terminal_ui::create_reconnect_box(user_id, &tunnels);
                     if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
-                        warn!("Failed to send activation message: {:?}", e);
+                        warn!("Failed to send reconnect message: {:?}", e);
                     }
                 }
-                Err(reason) => {
-                    warn!("Device Flow failed to start: {}", reason);
+            }
+            VerificationStatus::NotStarted => {
+                // Start Device Flow
+                match self.start_device_flow().await {
+                    Ok(code) => {
+                        let url = self.device_flow_client.get_activation_url(&code);
+
+                        // Log to server
+                        info!("Device Flow started - Code: {}, URL: {}", code, url);
+
+                        // Send activation box to client
+                        let message = terminal_ui::create_activation_box(&code, &url);
+                        if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
+                            warn!("Failed to send activation message: {:?}", e);
+                        }
+                    }
+                    Err(reason) => {
+                        warn!("Device Flow failed to start: {}", reason);
+                    }
                 }
             }
+            _ => {}
         }
 
         Ok(true)
@@ -675,7 +798,40 @@ impl Handler for SshHandler {
         info!("Shell request on channel {:?}", channel);
         session.channel_success(channel)?;
 
-        // Now send the activation message if Device Flow is pending
+        // Check if there's a pending reconnect message
+        let pending_port = {
+            let mut state = self.shared_state.lock().await;
+            state.pending_reconnect_port.take()
+        };
+
+        if let Some(port) = pending_port {
+            // Send deferred reconnect message
+            let (user_id, tunnels) = {
+                let state = self.shared_state.lock().await;
+                let user_id = match &state.verification_status {
+                    VerificationStatus::Verified { user_id } => user_id.clone(),
+                    _ => "unknown".to_string(),
+                };
+                let tunnels: Vec<(String, u32)> = state
+                    .registered_subdomains
+                    .iter()
+                    .map(|s| (s.clone(), port))
+                    .collect();
+                (user_id, tunnels)
+            };
+
+            if !tunnels.is_empty() {
+                let message = terminal_ui::create_reconnect_box(&user_id, &tunnels);
+                if let Err(e) = session.data(channel, message.into_bytes().into()) {
+                    warn!("Failed to send reconnect message in shell_request: {:?}", e);
+                } else {
+                    info!("Reconnect message sent in shell_request");
+                }
+            }
+            return Ok(());
+        }
+
+        // Send the activation message if Device Flow is pending
         let status = self.get_verification_status().await;
         if let VerificationStatus::Pending { code } = status {
             let url = self.device_flow_client.get_activation_url(&code);
@@ -692,7 +848,7 @@ impl Handler for SshHandler {
 }
 
 impl SshHandler {
-    /// Create tunnel after verification (used for SKIP_AUTH mode)
+    /// Create tunnel after verification (used for SKIP_AUTH mode and reconnection)
     async fn create_tunnel(&self, address: &str, port: u32) -> Result<bool, TunnelError> {
         let handle = match &self.session_handle {
             Some(h) => h.clone(),
@@ -702,7 +858,25 @@ impl SshHandler {
             }
         };
 
-        let subdomain = self.generate_subdomain().await;
+        // Use last_subdomain if available (reconnection), otherwise generate new one
+        let (subdomain, is_reconnect) = {
+            let state = self.shared_state.lock().await;
+            if let Some(ref last) = state.last_subdomain {
+                info!("Reusing subdomain from previous session: {}", last);
+                (last.clone(), true)
+            } else {
+                drop(state);
+                (self.generate_subdomain().await, false)
+            }
+        };
+
+        // If reconnecting, remove the old tunnel first (stale from previous session)
+        if is_reconnect {
+            if let Ok(old_info) = self.state.remove_tunnel(&subdomain).await {
+                info!("Removed stale tunnel for reconnection: {} (was from {})", subdomain, old_info.client_ip);
+            }
+        }
+        
         let username = {
             let state = self.shared_state.lock().await;
             match &state.verification_status {

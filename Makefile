@@ -36,7 +36,7 @@ dev-web: ## Run web in dev mode
 	bun dev:web
 
 dev-tunnl: ## Run tunnl in dev mode
-	cd apps/tunnl && RUST_LOG=debug cargo run
+	cd apps/tunnl && RUST_LOG=info cargo run
 
 up: ## Start web and tunnl services (without rebuild)
 	@echo "Starting web and tunnl services..."

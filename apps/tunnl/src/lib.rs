@@ -19,4 +19,4 @@ pub use key::load_or_generate_server_key;
 pub use management::run_management_api;
 pub use proxy::run_http_proxy;
 pub use ssh::{SshHandler, TunnelServer};
-pub use state::{AppState, TunnelInfo};
+pub use state::{AppState, TunnelInfo, VerifiedKey};

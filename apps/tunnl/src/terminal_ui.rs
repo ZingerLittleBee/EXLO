@@ -210,6 +210,52 @@ pub fn create_port_error_box(port: u32, address: &str) -> String {
     output
 }
 
+/// Create the reconnect success box shown when a verified user reconnects
+pub fn create_reconnect_box(username: &str, tunnel_urls: &[(String, u32)]) -> String {
+    let title = format!("{} RECONNECTED", style("✓").green());
+
+    // Truncate username if too long
+    let display_user = if username.len() > 30 {
+        format!("{}...", &username[..27])
+    } else {
+        username.to_string()
+    };
+    let welcome_styled = format!("Welcome back, {}!", style(&display_user).bold());
+
+    let disconnect_hint = format!("{}", style("Press Esc double to disconnect").dim());
+
+    let mut output = String::new();
+
+    // Clear entire screen and move cursor to top
+    output.push_str("\x1B[2J\x1B[H");
+
+    output.push_str("\r\n");
+    output.push_str(&top_border());
+    output.push_str(&centered_line(&title));
+    output.push_str(&middle_border());
+    output.push_str(&empty_line());
+    output.push_str(&content_line(&welcome_styled));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Your tunnel is ready:"));
+
+    for (subdomain, _port) in tunnel_urls {
+        let full_url = get_tunnel_url(subdomain);
+        let url_line = format!(
+            "{} {}",
+            style("➜").cyan(),
+            style(&full_url).cyan().underlined()
+        );
+        output.push_str(&content_line(&url_line));
+    }
+
+    output.push_str(&empty_line());
+    output.push_str(&content_line(&disconnect_hint));
+    output.push_str(&bottom_border());
+    output.push_str("\r\n");
+
+    output
+}
+
 /// Create a hint message for ESC key press
 pub fn create_esc_hint() -> String {
     format!(
