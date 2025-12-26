@@ -23,7 +23,9 @@ export function InstallationSection() {
   const [copied, setCopied] = useState<number | null>(null)
 
   const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text).catch(() => {
+      console.error('Copy failed')
+    })
     setCopied(index)
     setTimeout(() => setCopied(null), 2000)
   }
@@ -40,7 +42,7 @@ export function InstallationSection() {
             Self-Host in Minutes
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground text-sm">
-            Deploy your own tunnel server with Docker. Full control, zero dependencies on external services.
+            Deploy your own tunnel server with Docker. Users connect with standard SSH — no client software required.
           </p>
           <div className="mx-auto mt-6 h-px w-32 bg-border" />
         </div>

@@ -44,8 +44,8 @@ export function HeroSection() {
 
         {/* Sub-headline */}
         <p className="mx-auto mb-12 max-w-2xl text-muted-foreground text-sm leading-relaxed sm:text-base">
-          The self-hosted, clientless alternative to ngrok. Maintain full control over your data and traffic with strict
-          access policies.
+          The self-hosted solution for secure reverse tunneling that works with your existing SSH. No client
+          installation, no extra software — just one command.
         </p>
 
         {/* Terminal Demo */}
