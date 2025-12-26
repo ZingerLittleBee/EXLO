@@ -85,6 +85,17 @@ async fn main() -> anyhow::Result<()> {
 
     let http_state = state.clone();
     let mgmt_state = state.clone();
+    let cleanup_state = state.clone();
+
+    // Spawn a background task to periodically clean up expired tunnels and keys
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            cleanup_state.cleanup_expired_tunnels().await;
+            cleanup_state.cleanup_expired_keys().await;
+        }
+    });
 
     tokio::select! {
         result = server.run_on_address(config, ssh_addr) => {
