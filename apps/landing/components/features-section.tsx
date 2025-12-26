@@ -3,8 +3,8 @@ import { Eye, Lock, Server, Shield, Terminal, Zap } from 'lucide-react'
 const features = [
   {
     icon: Terminal,
-    title: 'Zero Config',
-    description: 'Works with standard OpenSSH installed on every machine. No client installation required.',
+    title: 'No Client Required',
+    description: 'Works with the OpenSSH already on your machine. No downloads, no installations, no agents.',
     status: '[OK]'
   },
   {

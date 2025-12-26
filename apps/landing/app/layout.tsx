@@ -12,8 +12,8 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'EXLO - Self-Hosted SSH Reverse Tunnel',
   description:
-    'The self-hosted, clientless alternative to ngrok. Expose localhost to the internet securely with full control over your data.',
-  keywords: ['ssh', 'tunnel', 'reverse proxy', 'ngrok alternative', 'self-hosted', 'open source']
+    'The self-hosted, clientless solution for secure reverse tunneling. Expose localhost to the internet with full control over your data.',
+  keywords: ['ssh', 'tunnel', 'reverse proxy', 'secure access', 'self-hosted', 'open source']
 }
 
 export default function RootLayout({

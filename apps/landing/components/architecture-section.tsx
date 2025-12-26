@@ -5,7 +5,7 @@ const steps = [
     icon: Terminal,
     step: '01',
     title: 'Terminal',
-    description: 'User runs ssh -R from any machine with OpenSSH installed.'
+    description: 'Run a single ssh -R command — no client or agent to install.'
   },
   {
     icon: Server,
