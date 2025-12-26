@@ -94,6 +94,7 @@ async fn main() -> anyhow::Result<()> {
             interval.tick().await;
             cleanup_state.cleanup_expired_tunnels().await;
             cleanup_state.cleanup_expired_keys().await;
+            cleanup_state.cleanup_rate_limits().await;
         }
     });
 

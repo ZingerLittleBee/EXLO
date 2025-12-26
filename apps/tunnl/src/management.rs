@@ -52,14 +52,12 @@ async fn list_tunnels(
     State(state): State<Arc<AppState>>,
 ) -> Json<TunnelsListResponse> {
     let tunnels = state.list_tunnels().await;
-    let now = Utc::now();
 
     let tunnel_responses: Vec<TunnelResponse> = tunnels
         .into_iter()
         .map(|t| {
-            // Calculate connected_at as ISO 8601 timestamp
-            let elapsed = t.created_at.elapsed();
-            let connected_at: DateTime<Utc> = now - chrono::Duration::from_std(elapsed).unwrap_or_default();
+            // Convert SystemTime to DateTime<Utc>
+            let connected_at: DateTime<Utc> = t.created_at.into();
 
             TunnelResponse {
                 subdomain: t.subdomain,

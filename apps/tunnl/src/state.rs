@@ -1,7 +1,8 @@
 //! State management for tunnel registry.
 
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::net::IpAddr;
+use std::time::{Duration, SystemTime};
 
 use log::info;
 use russh::server::Handle;
@@ -14,6 +15,15 @@ const VERIFIED_KEY_TTL: Duration = Duration::from_secs(30 * 60);
 
 /// How long a disconnected tunnel remains in the list (same as verified key TTL)
 const DISCONNECTED_TUNNEL_TTL: Duration = Duration::from_secs(30 * 60);
+
+/// Minimum interval between Device Flow requests per IP (10 seconds)
+const DEVICE_FLOW_RATE_LIMIT: Duration = Duration::from_secs(10);
+
+/// Maximum Device Flow attempts per IP within the rate limit window (5 attempts per minute)
+const DEVICE_FLOW_MAX_ATTEMPTS: u32 = 5;
+
+/// Window for counting Device Flow attempts (1 minute)
+const DEVICE_FLOW_WINDOW: Duration = Duration::from_secs(60);
 
 /// Information about a registered tunnel.
 #[derive(Debug, Clone)]
@@ -28,8 +38,8 @@ pub struct TunnelInfo {
     pub requested_port: u32,
     /// Server port that was "virtually" bound
     pub server_port: u32,
-    /// When this tunnel was created
-    pub created_at: Instant,
+    /// When this tunnel was created (wall-clock time for persistence)
+    pub created_at: SystemTime,
     /// The client's username
     pub username: String,
     /// The client's IP address
@@ -37,14 +47,14 @@ pub struct TunnelInfo {
     /// Whether the SSH connection is still active
     pub is_connected: bool,
     /// When the tunnel was disconnected (None if still connected)
-    pub disconnected_at: Option<Instant>,
+    pub disconnected_at: Option<SystemTime>,
 }
 
 /// A verified public key with expiration
 #[derive(Debug, Clone)]
 pub struct VerifiedKey {
     pub user_id: String,
-    pub verified_at: Instant,
+    pub verified_at: SystemTime,
     /// Last used subdomain for this key (to preserve on reconnect)
     pub last_subdomain: Option<String>,
 }
@@ -53,13 +63,76 @@ impl VerifiedKey {
     pub fn new(user_id: String) -> Self {
         Self {
             user_id,
-            verified_at: Instant::now(),
+            verified_at: SystemTime::now(),
             last_subdomain: None,
         }
     }
 
     pub fn is_expired(&self) -> bool {
-        self.verified_at.elapsed() > VERIFIED_KEY_TTL
+        SystemTime::now()
+            .duration_since(self.verified_at)
+            .map(|elapsed| elapsed > VERIFIED_KEY_TTL)
+            .unwrap_or(true)
+    }
+}
+
+/// Rate limit tracking for Device Flow requests
+#[derive(Debug, Clone)]
+pub struct RateLimitEntry {
+    pub last_request: SystemTime,
+    pub attempts: u32,
+    pub window_start: SystemTime,
+}
+
+impl RateLimitEntry {
+    pub fn new() -> Self {
+        let now = SystemTime::now();
+        Self {
+            last_request: now,
+            attempts: 1,
+            window_start: now,
+        }
+    }
+
+    pub fn is_rate_limited(&self) -> bool {
+        let now = SystemTime::now();
+        
+        // Check minimum interval since last request
+        if let Ok(since_last) = now.duration_since(self.last_request) {
+            if since_last < DEVICE_FLOW_RATE_LIMIT {
+                return true;
+            }
+        }
+        
+        // Check max attempts in window
+        if let Ok(since_window_start) = now.duration_since(self.window_start) {
+            if since_window_start < DEVICE_FLOW_WINDOW && self.attempts >= DEVICE_FLOW_MAX_ATTEMPTS {
+                return true;
+            }
+        }
+        
+        false
+    }
+
+    pub fn record_attempt(&mut self) {
+        let now = SystemTime::now();
+        
+        // Reset window if expired
+        if let Ok(since_window_start) = now.duration_since(self.window_start) {
+            if since_window_start >= DEVICE_FLOW_WINDOW {
+                self.attempts = 0;
+                self.window_start = now;
+            }
+        }
+        
+        self.last_request = now;
+        self.attempts += 1;
+    }
+}
+
+impl Default for RateLimitEntry {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -70,11 +143,44 @@ pub struct AppState {
     pub tunnels: RwLock<HashMap<String, TunnelInfo>>,
     /// Map from public key fingerprint -> VerifiedKey
     pub verified_keys: RwLock<HashMap<String, VerifiedKey>>,
+    /// Rate limiting for Device Flow requests (IP -> RateLimitEntry)
+    rate_limits: RwLock<HashMap<IpAddr, RateLimitEntry>>,
 }
 
 impl AppState {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Check if an IP is rate-limited for Device Flow requests
+    pub async fn is_device_flow_rate_limited(&self, ip: IpAddr) -> bool {
+        let limits = self.rate_limits.read().await;
+        if let Some(entry) = limits.get(&ip) {
+            entry.is_rate_limited()
+        } else {
+            false
+        }
+    }
+
+    /// Record a Device Flow request from an IP
+    pub async fn record_device_flow_request(&self, ip: IpAddr) {
+        let mut limits = self.rate_limits.write().await;
+        if let Some(entry) = limits.get_mut(&ip) {
+            entry.record_attempt();
+        } else {
+            limits.insert(ip, RateLimitEntry::new());
+        }
+    }
+
+    /// Clean up old rate limit entries
+    pub async fn cleanup_rate_limits(&self) {
+        let mut limits = self.rate_limits.write().await;
+        let now = SystemTime::now();
+        limits.retain(|_, entry| {
+            now.duration_since(entry.window_start)
+                .map(|elapsed| elapsed < DEVICE_FLOW_WINDOW * 2)
+                .unwrap_or(false)
+        });
     }
 
     pub async fn register_tunnel(&self, info: TunnelInfo) -> Result<(), TunnelError> {
@@ -148,7 +254,7 @@ impl AppState {
         let mut tunnels = self.tunnels.write().await;
         if let Some(tunnel) = tunnels.get_mut(subdomain) {
             tunnel.is_connected = false;
-            tunnel.disconnected_at = Some(Instant::now());
+            tunnel.disconnected_at = Some(SystemTime::now());
             info!("Marked tunnel as disconnected: {}", subdomain);
         }
     }
@@ -156,14 +262,127 @@ impl AppState {
     /// Clean up tunnels that have been disconnected for too long
     pub async fn cleanup_expired_tunnels(&self) {
         let mut tunnels = self.tunnels.write().await;
+        let now = SystemTime::now();
         tunnels.retain(|subdomain, tunnel| {
             if let Some(disconnected_at) = tunnel.disconnected_at {
-                if disconnected_at.elapsed() > DISCONNECTED_TUNNEL_TTL {
-                    info!("Removing expired disconnected tunnel: {}", subdomain);
-                    return false;
+                if let Ok(elapsed) = now.duration_since(disconnected_at) {
+                    if elapsed > DISCONNECTED_TUNNEL_TTL {
+                        info!("Removing expired disconnected tunnel: {}", subdomain);
+                        return false;
+                    }
                 }
             }
             true
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::net::{IpAddr, Ipv4Addr};
+
+    fn create_test_state() -> AppState {
+        AppState::new()
+    }
+
+    #[test]
+    fn test_verified_key_expiration() {
+        let key = VerifiedKey::new("user123".to_string());
+        assert!(!key.is_expired());
+    }
+
+    #[test]
+    fn test_rate_limit_entry_new() {
+        let entry = RateLimitEntry::new();
+        assert_eq!(entry.attempts, 1);
+    }
+
+    #[test]
+    fn test_rate_limit_entry_is_rate_limited_on_first_request() {
+        let entry = RateLimitEntry::new();
+        // Should be rate limited because last_request is just now (< 10s ago)
+        assert!(entry.is_rate_limited());
+    }
+
+    #[test]
+    fn test_rate_limit_entry_max_attempts() {
+        let mut entry = RateLimitEntry::new();
+        // Record more attempts to exceed limit
+        for _ in 0..DEVICE_FLOW_MAX_ATTEMPTS {
+            entry.record_attempt();
+        }
+        assert!(entry.is_rate_limited());
+    }
+
+    #[tokio::test]
+    async fn test_device_flow_rate_limiting() {
+        let state = create_test_state();
+        let ip = IpAddr::V4(Ipv4Addr::new(192, 168, 1, 1));
+
+        // First request should not be rate limited
+        assert!(!state.is_device_flow_rate_limited(ip).await);
+
+        // Record the request
+        state.record_device_flow_request(ip).await;
+
+        // Now should be rate limited (too soon)
+        assert!(state.is_device_flow_rate_limited(ip).await);
+    }
+
+    #[tokio::test]
+    async fn test_verified_key_save_and_get() {
+        let state = create_test_state();
+        let fingerprint = "SHA256:abc123";
+        let user_id = "user1";
+
+        state.save_verified_key(fingerprint, user_id, Some("test-subdomain")).await;
+
+        let key = state.get_verified_key(fingerprint).await;
+        assert!(key.is_some());
+        let key = key.unwrap();
+        assert_eq!(key.user_id, user_id);
+        assert_eq!(key.last_subdomain, Some("test-subdomain".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_verified_key_not_found() {
+        let state = create_test_state();
+        let key = state.get_verified_key("nonexistent").await;
+        assert!(key.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_verified_key_subdomain() {
+        let state = create_test_state();
+        let fingerprint = "SHA256:xyz789";
+
+        state.save_verified_key(fingerprint, "user", None).await;
+        state.update_verified_key_subdomain(fingerprint, "new-subdomain").await;
+
+        let key = state.get_verified_key(fingerprint).await.unwrap();
+        assert_eq!(key.last_subdomain, Some("new-subdomain".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_rate_limits() {
+        let state = create_test_state();
+        let ip = IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1));
+
+        state.record_device_flow_request(ip).await;
+        
+        // Should have entry
+        {
+            let limits = state.rate_limits.read().await;
+            assert!(limits.contains_key(&ip));
+        }
+
+        // Cleanup should not remove recent entries
+        state.cleanup_rate_limits().await;
+        
+        {
+            let limits = state.rate_limits.read().await;
+            assert!(limits.contains_key(&ip));
+        }
     }
 }

@@ -2,7 +2,7 @@
 
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::SystemTime;
 
 use log::{error, info, warn};
 use russh::Disconnect;
@@ -12,7 +12,7 @@ use crate::device::{DeviceFlowClient, RegisterTunnelRequest};
 use crate::state::{AppState, TunnelInfo};
 use crate::terminal_ui;
 
-use super::types::{rand_simple, PendingTunnel, SharedHandlerState, VerificationStatus};
+use super::types::{generate_secure_subdomain_id, PendingTunnel, SharedHandlerState, VerificationStatus};
 
 /// Spawn a background task to poll for Device Flow verification
 pub fn spawn_verification_polling(
@@ -206,8 +206,8 @@ async fn create_pending_tunnels(
         let subdomain = {
             let mut state = shared_state.lock().await;
             state.subdomain_counter += 1;
-            let random_part: u32 = rand_simple();
-            format!("tunnel-{:06x}-{}", random_part, state.subdomain_counter)
+            let random_id = generate_secure_subdomain_id();
+            format!("tunnel-{}-{}", random_id, state.subdomain_counter)
         };
 
         // Probe the local port before registering the tunnel
@@ -256,7 +256,7 @@ async fn create_pending_tunnels(
             requested_address: pending.address.clone(),
             requested_port: pending.port,
             server_port: 80,
-            created_at: Instant::now(),
+            created_at: SystemTime::now(),
             username: user_id.to_string(),
             client_ip: client_ip.to_string(),
             is_connected: true,

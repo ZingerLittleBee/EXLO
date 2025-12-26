@@ -1,7 +1,7 @@
 //! Tunnel creation and management logic.
 
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::SystemTime;
 
 use log::{error, info, warn};
 use russh::server::Handle;
@@ -72,7 +72,7 @@ pub async fn create_tunnel(
         requested_address: address.to_string(),
         requested_port: port,
         server_port: 80,
-        created_at: Instant::now(),
+        created_at: SystemTime::now(),
         username: tunnel_username,
         client_ip,
         is_connected: true,
