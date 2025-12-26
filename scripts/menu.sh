@@ -2,7 +2,7 @@
 # EXLO Interactive Command Menu
 # Requires: gum (https://github.com/charmbracelet/gum)
 
-set -e
+set -euo pipefail
 
 # Colors
 CYAN='\033[0;36m'
@@ -138,17 +138,25 @@ run_command() {
     fi
 
     # Extract command name (first word)
-    local cmd=$(echo "$selection" | awk '{print $1}')
+    local cmd
+    cmd=$(awk '{print $1}' <<<"$selection")
 
     echo ""
     echo -e "${CYAN}Running: make $cmd${NC}"
     echo ""
 
     # Run the command
-    make "$cmd"
+    if ! make "$cmd"; then
+        echo -e "${RED}make $cmd failed${NC}"
+        exit 1
+    fi
 
     echo ""
-    gum confirm "Continue?" && return || exit 0
+    if gum confirm "Continue?"; then
+        return
+    else
+        exit 0
+    fi
 }
 
 # Main

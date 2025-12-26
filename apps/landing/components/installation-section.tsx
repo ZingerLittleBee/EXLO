@@ -23,7 +23,9 @@ export function InstallationSection() {
   const [copied, setCopied] = useState<number | null>(null)
 
   const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text).catch(() => {
+      console.error('Copy failed')
+    })
     setCopied(index)
     setTimeout(() => setCopied(null), 2000)
   }

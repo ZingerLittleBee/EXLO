@@ -8,7 +8,7 @@ COMPOSE_PROD := docker-compose.yml
 .PHONY: help menu init-db init-dev-db dev-web dev-docs dev-landing dev-tunnl dev-all \
         build build-web build-tunnl build-images \
         deploy-simple deploy-local deploy-prod \
-        up up-build down logs logs-web logs-tunnl ps \
+        up up-build down logs logs-web logs-tunnl ps web tunnl \
         db-backup db-restore setup-env validate-env health status \
         clean clean-images clean-volumes
 
@@ -139,7 +139,7 @@ ps: ## Show running containers
 
 clean: ## Stop and remove all containers, volumes, and images
 	@echo "WARNING: This will remove all data including the database!"
-	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	@read -p "Are you sure? [y/N] " confirm && [[ "$$confirm" =~ ^[Yy]$$ ]] || exit 1
 	docker compose -f $(COMPOSE_FILE) --profile db down -v --rmi local
 	@echo "Cleanup complete."
 
@@ -150,7 +150,7 @@ clean-images: ## Remove Docker images only
 
 clean-volumes: ## Remove Docker volumes only
 	@echo "WARNING: This will remove all data!"
-	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
+	@read -p "Are you sure? [y/N] " confirm && [[ "$$confirm" =~ ^[Yy]$$ ]] || exit 1
 	docker compose -f $(COMPOSE_FILE) down -v
 	@echo "Volumes removed!"
 
@@ -165,7 +165,7 @@ db-backup: ## Backup PostgreSQL database
 db-restore: ## Restore PostgreSQL database (usage: make db-restore FILE=backups/xxx.sql)
 	@if [ -z "$(FILE)" ]; then echo "Usage: make db-restore FILE=backups/xxx.sql"; exit 1; fi
 	@echo "Restoring database from $(FILE)..."
-	docker compose -f $(COMPOSE_FILE) exec -T postgres psql -U postgres exlo < $(FILE)
+	docker compose -f $(COMPOSE_FILE) exec -T postgres psql -U postgres exlo < "$(FILE)"
 	@echo "Database restored!"
 
 # ==================== Environment ====================
