@@ -75,10 +75,81 @@ pub fn generate_session_id() -> String {
     format!("ssh-{:x}", now)
 }
 
-pub fn rand_simple() -> u32 {
-    use std::time::SystemTime;
-    let duration = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default();
-    ((duration.as_nanos() as u64 ^ 0x5DEECE66D) & 0xFFFFFF) as u32
+/// Generate a cryptographically secure random subdomain string.
+/// Uses OsRng for security and produces a 16-character hex string (64 bits of entropy).
+pub fn generate_secure_subdomain_id() -> String {
+    use rand::RngCore;
+    let mut bytes = [0u8; 8];
+    rand::rngs::OsRng.fill_bytes(&mut bytes);
+    hex::encode(bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_session_id_format() {
+        let session_id = generate_session_id();
+        assert!(session_id.starts_with("ssh-"));
+        assert!(session_id.len() > 4);
+    }
+
+    #[test]
+    fn test_generate_session_id_unique() {
+        let id1 = generate_session_id();
+        std::thread::sleep(std::time::Duration::from_nanos(1));
+        let id2 = generate_session_id();
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn test_generate_secure_subdomain_id_length() {
+        let subdomain = generate_secure_subdomain_id();
+        // 8 bytes = 16 hex characters
+        assert_eq!(subdomain.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_secure_subdomain_id_is_hex() {
+        let subdomain = generate_secure_subdomain_id();
+        assert!(subdomain.chars().all(|c| c.is_ascii_hexdigit()));
+    }
+
+    #[test]
+    fn test_generate_secure_subdomain_id_unique() {
+        let id1 = generate_secure_subdomain_id();
+        let id2 = generate_secure_subdomain_id();
+        assert_ne!(id1, id2);
+    }
+
+    #[test]
+    fn test_shared_handler_state_default() {
+        let state = SharedHandlerState::new();
+        assert!(matches!(state.verification_status, VerificationStatus::NotStarted));
+        assert!(state.pending_tunnels.is_empty());
+        assert!(state.registered_subdomains.is_empty());
+        assert_eq!(state.subdomain_counter, 0);
+    }
+
+    #[test]
+    fn test_verification_status_equality() {
+        let status1 = VerificationStatus::Verified { user_id: "user1".to_string() };
+        let status2 = VerificationStatus::Verified { user_id: "user1".to_string() };
+        let status3 = VerificationStatus::Verified { user_id: "user2".to_string() };
+        
+        assert_eq!(status1, status2);
+        assert_ne!(status1, status3);
+    }
+
+    #[test]
+    fn test_pending_tunnel_clone() {
+        let tunnel = PendingTunnel {
+            address: "localhost".to_string(),
+            port: 3000,
+        };
+        let cloned = tunnel.clone();
+        assert_eq!(tunnel.address, cloned.address);
+        assert_eq!(tunnel.port, cloned.port);
+    }
 }

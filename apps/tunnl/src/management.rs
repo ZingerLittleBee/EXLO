@@ -24,6 +24,8 @@ pub struct TunnelResponse {
     pub user_id: Option<String>,
     pub client_ip: String,
     pub connected_at: String,
+    /// Whether the SSH connection is still active (not closed)
+    pub is_connected: bool,
 }
 
 /// JSON response for list of tunnels.
@@ -50,14 +52,12 @@ async fn list_tunnels(
     State(state): State<Arc<AppState>>,
 ) -> Json<TunnelsListResponse> {
     let tunnels = state.list_tunnels().await;
-    let now = Utc::now();
 
     let tunnel_responses: Vec<TunnelResponse> = tunnels
         .into_iter()
         .map(|t| {
-            // Calculate connected_at as ISO 8601 timestamp
-            let elapsed = t.created_at.elapsed();
-            let connected_at: DateTime<Utc> = now - chrono::Duration::from_std(elapsed).unwrap_or_default();
+            // Convert SystemTime to DateTime<Utc>
+            let connected_at: DateTime<Utc> = t.created_at.into();
 
             TunnelResponse {
                 subdomain: t.subdomain,
@@ -68,6 +68,7 @@ async fn list_tunnels(
                 },
                 client_ip: t.client_ip,
                 connected_at: connected_at.to_rfc3339(),
+                is_connected: t.is_connected,
             }
         })
         .collect();

@@ -9,6 +9,8 @@ export interface ActiveTunnel {
   user_id: string | null
   client_ip: string
   connected_at: string
+  /** Whether the SSH connection is still active (not closed) */
+  is_connected: boolean
 }
 
 // Type for tunnel stored in database

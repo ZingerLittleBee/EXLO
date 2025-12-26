@@ -48,6 +48,7 @@ chrono = { version = "0.4", features = ["serde"] }
 # Terminal UI
 console = "0.15"
 unicode-width = "0.2"
+hex = "0.4.3"
 
 [dev-dependencies]
 # Testing
