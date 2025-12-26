@@ -12,6 +12,9 @@ use crate::error::TunnelError;
 /// How long a verified key remains valid (30 minutes)
 const VERIFIED_KEY_TTL: Duration = Duration::from_secs(30 * 60);
 
+/// How long a disconnected tunnel remains in the list (same as verified key TTL)
+const DISCONNECTED_TUNNEL_TTL: Duration = Duration::from_secs(30 * 60);
+
 /// Information about a registered tunnel.
 #[derive(Debug, Clone)]
 pub struct TunnelInfo {
@@ -31,6 +34,10 @@ pub struct TunnelInfo {
     pub username: String,
     /// The client's IP address
     pub client_ip: String,
+    /// Whether the SSH connection is still active
+    pub is_connected: bool,
+    /// When the tunnel was disconnected (None if still connected)
+    pub disconnected_at: Option<Instant>,
 }
 
 /// A verified public key with expiration
@@ -134,5 +141,29 @@ impl AppState {
     pub async fn cleanup_expired_keys(&self) {
         let mut keys = self.verified_keys.write().await;
         keys.retain(|_, key| !key.is_expired());
+    }
+
+    /// Mark a tunnel as disconnected (but keep it for reconnection window)
+    pub async fn mark_tunnel_disconnected(&self, subdomain: &str) {
+        let mut tunnels = self.tunnels.write().await;
+        if let Some(tunnel) = tunnels.get_mut(subdomain) {
+            tunnel.is_connected = false;
+            tunnel.disconnected_at = Some(Instant::now());
+            info!("Marked tunnel as disconnected: {}", subdomain);
+        }
+    }
+
+    /// Clean up tunnels that have been disconnected for too long
+    pub async fn cleanup_expired_tunnels(&self) {
+        let mut tunnels = self.tunnels.write().await;
+        tunnels.retain(|subdomain, tunnel| {
+            if let Some(disconnected_at) = tunnel.disconnected_at {
+                if disconnected_at.elapsed() > DISCONNECTED_TUNNEL_TTL {
+                    info!("Removing expired disconnected tunnel: {}", subdomain);
+                    return false;
+                }
+            }
+            true
+        });
     }
 }

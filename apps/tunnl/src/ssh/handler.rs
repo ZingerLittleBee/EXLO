@@ -123,14 +123,15 @@ impl SshHandler {
             state.registered_subdomains.clone()
         };
         for subdomain in &subdomains {
-            match self.state.remove_tunnel(subdomain).await {
-                Ok(_) => {
-                    info!("Removed tunnel: {}", subdomain);
-                    if let Err(e) = self.device_flow_client.unregister_tunnel(subdomain).await {
-                        warn!("Failed to unregister tunnel from web server: {}", e);
-                    }
-                }
-                Err(e) => warn!("Failed to remove tunnel {}: {}", subdomain, e),
+            // Mark tunnel as disconnected instead of removing it
+            // This allows the dashboard to show the correct status while keeping
+            // the tunnel entry for the reconnection window
+            self.state.mark_tunnel_disconnected(subdomain).await;
+            info!("Marked tunnel as disconnected: {}", subdomain);
+            
+            // Also notify web server about disconnection
+            if let Err(e) = self.device_flow_client.unregister_tunnel(subdomain).await {
+                warn!("Failed to unregister tunnel from web server: {}", e);
             }
         }
         self.shared_state
@@ -589,5 +590,35 @@ impl Handler for SshHandler {
         }
 
         Ok(())
+    }
+}
+
+impl Drop for SshHandler {
+    fn drop(&mut self) {
+        // When the handler is dropped (connection closed), clean up tunnels
+        let state = self.state.clone();
+        let shared_state = self.shared_state.clone();
+        let device_flow_client = self.device_flow_client.clone();
+        
+        // Spawn a task to clean up since Drop can't be async
+        tokio::spawn(async move {
+            let subdomains: Vec<String> = {
+                let state = shared_state.lock().await;
+                state.registered_subdomains.clone()
+            };
+            
+            if subdomains.is_empty() {
+                return;
+            }
+            
+            info!("Handler dropped, marking {} tunnel(s) as disconnected", subdomains.len());
+            
+            for subdomain in &subdomains {
+                state.mark_tunnel_disconnected(subdomain).await;
+                if let Err(e) = device_flow_client.unregister_tunnel(subdomain).await {
+                    warn!("Failed to unregister tunnel from web server: {}", e);
+                }
+            }
+        });
     }
 }

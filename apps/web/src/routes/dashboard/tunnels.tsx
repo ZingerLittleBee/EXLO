@@ -1,6 +1,7 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -162,6 +163,7 @@ function TunnelsDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Status</TableHead>
                   <TableHead>Subdomain</TableHead>
                   <TableHead>User ID</TableHead>
                   <TableHead>IP Address</TableHead>
@@ -172,6 +174,19 @@ function TunnelsDashboard() {
               <TableBody>
                 {tunnels.map((tunnel) => (
                   <TableRow key={tunnel.subdomain}>
+                    <TableCell>
+                      {tunnel.is_connected ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-500" variant="outline">
+                          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-500/10 text-amber-500" variant="outline">
+                          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />
+                          Reconnectable
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       <a
                         className="text-primary hover:underline"

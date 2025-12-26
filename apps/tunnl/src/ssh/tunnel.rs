@@ -75,6 +75,8 @@ pub async fn create_tunnel(
         created_at: Instant::now(),
         username: tunnel_username,
         client_ip,
+        is_connected: true,
+        disconnected_at: None,
     };
 
     match app_state.register_tunnel(tunnel_info).await {

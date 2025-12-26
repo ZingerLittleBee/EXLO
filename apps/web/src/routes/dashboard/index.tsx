@@ -258,10 +258,17 @@ function DashboardOverview() {
                 {tunnels.map((tunnel) => (
                   <TableRow key={tunnel.subdomain}>
                     <TableCell>
-                      <Badge className="bg-emerald-500/10 text-emerald-500" variant="outline">
-                        <span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                        Active
-                      </Badge>
+                      {tunnel.is_connected ? (
+                        <Badge className="bg-emerald-500/10 text-emerald-500" variant="outline">
+                          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-amber-500/10 text-amber-500" variant="outline">
+                          <span className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />
+                          Reconnectable
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell>
                       <a

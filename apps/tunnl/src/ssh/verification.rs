@@ -259,6 +259,8 @@ async fn create_pending_tunnels(
             created_at: Instant::now(),
             username: user_id.to_string(),
             client_ip: client_ip.to_string(),
+            is_connected: true,
+            disconnected_at: None,
         };
 
         match app_state.register_tunnel(tunnel_info).await {
