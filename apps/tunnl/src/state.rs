@@ -57,8 +57,9 @@ pub struct VerifiedKey {
     /// User's display name (nickname)
     pub display_name: Option<String>,
     pub verified_at: SystemTime,
-    /// Last used subdomain for this key (to preserve on reconnect)
-    pub last_subdomain: Option<String>,
+    /// Subdomains for this key, keyed by client port (to preserve on reconnect)
+    /// Maps client_port -> subdomain
+    pub subdomains: HashMap<u32, String>,
 }
 
 impl VerifiedKey {
@@ -67,7 +68,7 @@ impl VerifiedKey {
             user_id,
             display_name,
             verified_at: SystemTime::now(),
-            last_subdomain: None,
+            subdomains: HashMap::new(),
         }
     }
 
@@ -247,24 +248,34 @@ impl AppState {
         fingerprint: &str,
         user_id: &str,
         display_name: Option<&str>,
-        subdomain: Option<&str>,
+        client_port: u32,
+        subdomain: &str,
     ) {
         let mut keys = self.verified_keys.write().await;
         info!(
-            "Saving verified key: fingerprint={}, user_id={}, display_name={:?}, subdomain={:?}",
-            fingerprint, user_id, display_name, subdomain
+            "Saving verified key: fingerprint={}, user_id={}, display_name={:?}, port={}, subdomain={}",
+            fingerprint, user_id, display_name, client_port, subdomain
         );
-        let mut key = VerifiedKey::new(user_id.to_string(), display_name.map(|s| s.to_string()));
-        key.last_subdomain = subdomain.map(|s| s.to_string());
-        keys.insert(fingerprint.to_string(), key);
+        
+        if let Some(existing) = keys.get_mut(fingerprint) {
+            existing.subdomains.insert(client_port, subdomain.to_string());
+            existing.verified_at = SystemTime::now();
+            if display_name.is_some() {
+                existing.display_name = display_name.map(|s| s.to_string());
+            }
+        } else {
+            let mut key = VerifiedKey::new(user_id.to_string(), display_name.map(|s| s.to_string()));
+            key.subdomains.insert(client_port, subdomain.to_string());
+            keys.insert(fingerprint.to_string(), key);
+        }
     }
 
-    /// Update the subdomain for a verified key
-    pub async fn update_verified_key_subdomain(&self, fingerprint: &str, subdomain: &str) {
+    /// Update/add a subdomain for a verified key by client port
+    pub async fn update_verified_key_subdomain(&self, fingerprint: &str, client_port: u32, subdomain: &str) {
         let mut keys = self.verified_keys.write().await;
         if let Some(key) = keys.get_mut(fingerprint) {
-            key.last_subdomain = Some(subdomain.to_string());
-            info!("Updated verified key subdomain: fingerprint={}, subdomain={}", fingerprint, subdomain);
+            key.subdomains.insert(client_port, subdomain.to_string());
+            info!("Updated verified key subdomain: fingerprint={}, port={}, subdomain={}", fingerprint, client_port, subdomain);
         }
     }
 
@@ -373,14 +384,14 @@ mod tests {
         let fingerprint = "SHA256:abc123";
         let user_id = "user1";
 
-        state.save_verified_key(fingerprint, user_id, Some("User One"), Some("test-subdomain")).await;
+        state.save_verified_key(fingerprint, user_id, Some("User One"), 8000, "test-subdomain").await;
 
         let key = state.get_verified_key(fingerprint).await;
         assert!(key.is_some());
         let key = key.unwrap();
         assert_eq!(key.user_id, user_id);
         assert_eq!(key.display_name, Some("User One".to_string()));
-        assert_eq!(key.last_subdomain, Some("test-subdomain".to_string()));
+        assert_eq!(key.subdomains.get(&8000), Some(&"test-subdomain".to_string()));
     }
 
     #[tokio::test]
@@ -395,11 +406,25 @@ mod tests {
         let state = create_test_state();
         let fingerprint = "SHA256:xyz789";
 
-        state.save_verified_key(fingerprint, "user", None, None).await;
-        state.update_verified_key_subdomain(fingerprint, "new-subdomain").await;
+        state.save_verified_key(fingerprint, "user", None, 3000, "old-subdomain").await;
+        state.update_verified_key_subdomain(fingerprint, 3000, "new-subdomain").await;
 
         let key = state.get_verified_key(fingerprint).await.unwrap();
-        assert_eq!(key.last_subdomain, Some("new-subdomain".to_string()));
+        assert_eq!(key.subdomains.get(&3000), Some(&"new-subdomain".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_verified_key_multiple_ports() {
+        let state = create_test_state();
+        let fingerprint = "SHA256:multiport";
+        
+        state.save_verified_key(fingerprint, "user", Some("Test User"), 8000, "subdomain-8000").await;
+        state.save_verified_key(fingerprint, "user", Some("Test User"), 3000, "subdomain-3000").await;
+        
+        let key = state.get_verified_key(fingerprint).await.unwrap();
+        assert_eq!(key.subdomains.len(), 2);
+        assert_eq!(key.subdomains.get(&8000), Some(&"subdomain-8000".to_string()));
+        assert_eq!(key.subdomains.get(&3000), Some(&"subdomain-3000".to_string()));
     }
 
     #[tokio::test]

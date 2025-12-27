@@ -24,10 +24,11 @@ pub struct SharedHandlerState {
     pub esc_pressed: bool,
     /// Timestamp of last ESC press for timeout
     pub last_esc_time: Option<std::time::Instant>,
-    /// Last subdomain from previous session (for reconnection)
-    pub last_subdomain: Option<String>,
-    /// Port for the reconnect message (set when tunnel created before session channel opens)
-    pub pending_reconnect_port: Option<u32>,
+    /// Subdomains from previous session, keyed by client port (for reconnection)
+    /// Maps client_port -> subdomain
+    pub last_subdomains: std::collections::HashMap<u32, String>,
+    /// Pending tunnel port (set when tunnel created before session channel opens)
+    pub pending_tunnel_port: Option<u32>,
 }
 
 impl SharedHandlerState {
@@ -41,8 +42,8 @@ impl SharedHandlerState {
             session_channel_id: None,
             esc_pressed: false,
             last_esc_time: None,
-            last_subdomain: None,
-            pending_reconnect_port: None,
+            last_subdomains: std::collections::HashMap::new(),
+            pending_tunnel_port: None,
         }
     }
 }

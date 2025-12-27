@@ -281,15 +281,15 @@ async fn create_pending_tunnels(
                 {
                     let mut state = shared_state.lock().await;
                     state.registered_subdomains.push(subdomain.clone());
-                    // Set last_subdomain for future reconnections
-                    state.last_subdomain = Some(subdomain.clone());
+                    // Store subdomain by port for future reconnections
+                    state.last_subdomains.insert(pending.port, subdomain.clone());
                 }
                 created_tunnels.push((subdomain.clone(), pending.port));
 
                 // Save verified key with subdomain for reconnection
                 if let Some(fingerprint) = public_key_fingerprint {
                     app_state
-                        .save_verified_key(fingerprint, user_id, Some(display_name), Some(&subdomain))
+                        .save_verified_key(fingerprint, user_id, Some(display_name), pending.port, &subdomain)
                         .await;
                 }
 
