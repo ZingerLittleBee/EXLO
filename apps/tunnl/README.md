@@ -5,7 +5,7 @@ A high-performance SSH reverse tunnel server written in Rust.
 ## Features
 
 - **SSH Server** (`:2222`) — Accepts `ssh -R` reverse port forwarding
-- **HTTP Proxy** (`:8080`) — Subdomain-based traffic routing
+- **HTTP Proxy** (`:8080`) — Subdomain-based TCP passthrough routing
 - **Management API** (`:9090`) — Internal REST API for tunnel administration
 - **Device Flow Auth** — Browser-based authentication, no SSH keys required
 - **Virtual Bind** — No physical port binding, scales to thousands of tunnels
@@ -45,17 +45,18 @@ src/
 ├── state.rs         # AppState, TunnelInfo, VerifiedKey, RateLimiting
 ├── error.rs         # TunnelError enum
 ├── key.rs           # SSH server key persistence
-├── proxy.rs         # HTTP proxy (hyper), subdomain routing
+├── proxy.rs         # TCP passthrough proxy with Host header peek
 ├── device.rs        # Device Flow client, activation code generation
 ├── management.rs    # REST API (axum) for tunnel management
 ├── terminal_ui.rs   # Terminal output formatting
 └── ssh/
-    ├── mod.rs       # Module exports
-    ├── server.rs    # TunnelServer (russh Server impl)
-    ├── handler.rs   # SshHandler (per-connection handler)
-    ├── tunnel.rs    # Tunnel creation logic
-    ├── types.rs     # Shared types (PendingTunnel, VerificationStatus)
-    └── verification.rs  # Device Flow polling
+    ├── mod.rs          # Module exports
+    ├── server.rs       # TunnelServer (russh Server impl)
+    ├── handler.rs      # SshHandler struct and core methods
+    ├── handler_impl.rs # Handler trait implementation (SSH callbacks)
+    ├── tunnel.rs       # Tunnel creation logic
+    ├── types.rs        # Shared types (PendingTunnel, VerificationStatus)
+    └── verification.rs # Device Flow polling
 ```
 
 ## Tech Stack
@@ -63,7 +64,7 @@ src/
 | Component | Library |
 |-----------|---------|
 | SSH Protocol | `russh` / `russh-keys` |
-| HTTP Proxy | `hyper` / `hyper-util` |
+| TCP Proxy | `tokio` (TcpStream, peek-based routing) |
 | Management API | `axum` / `tower-http` |
 | Async Runtime | `tokio` |
 | HTTP Client | `reqwest` |

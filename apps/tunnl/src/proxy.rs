@@ -1,16 +1,11 @@
 //! HTTP proxy layer for forwarding traffic through SSH tunnels.
+//! Uses TCP passthrough with Host header peek for subdomain routing.
 
-use std::convert::Infallible;
 use std::sync::Arc;
 
-use bytes::Bytes;
-use http_body_util::Full;
-use hyper::server::conn::http1;
-use hyper::service::service_fn;
-use hyper::{Request, Response, StatusCode};
-use hyper_util::rt::TokioIo;
 use log::{debug, error, info, warn};
-use tokio::net::TcpListener;
+use tokio::io::{AsyncWriteExt, copy_bidirectional};
+use tokio::net::{TcpListener, TcpStream};
 
 use crate::config::{get_proxy_url, get_tunnel_url};
 use crate::state::AppState;
@@ -20,7 +15,7 @@ use crate::state::AppState;
 fn extract_subdomain(host: &str) -> Option<String> {
     let host_without_port = host.split(':').next()?;
     let subdomain = host_without_port.split('.').next()?;
-    
+
     if subdomain.starts_with("tunnel-") {
         Some(subdomain.to_string())
     } else {
@@ -28,20 +23,86 @@ fn extract_subdomain(host: &str) -> Option<String> {
     }
 }
 
-/// Handle an incoming HTTP request by forwarding it through the SSH tunnel.
-async fn handle_http_request(
-    req: Request<hyper::body::Incoming>,
-    state: Arc<AppState>,
-) -> Result<Response<Full<Bytes>>, Infallible> {
-    let host = req
-        .headers()
-        .get("host")
-        .and_then(|h| h.to_str().ok())
-        .unwrap_or("");
-    
-    let subdomain = match extract_subdomain(host) {
+/// Extract Host header value from raw HTTP request bytes.
+fn extract_host_from_raw(data: &[u8]) -> Option<String> {
+    let text = std::str::from_utf8(data).ok()?;
+
+    for line in text.lines() {
+        let lower = line.to_lowercase();
+        if lower.starts_with("host:") {
+            return Some(line[5..].trim().to_string());
+        }
+        // Empty line means end of headers
+        if line.is_empty() {
+            break;
+        }
+    }
+    None
+}
+
+/// Generate error response HTML.
+fn error_response(status: u16, message: &str) -> Vec<u8> {
+    let body = message.as_bytes();
+    format!(
+        "HTTP/1.1 {} {}\r\nContent-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        status,
+        match status {
+            400 => "Bad Request",
+            404 => "Not Found",
+            502 => "Bad Gateway",
+            504 => "Gateway Timeout",
+            _ => "Error",
+        },
+        body.len(),
+        message
+    )
+    .into_bytes()
+}
+
+/// Generate tunnel list response.
+fn tunnel_list_response() -> Vec<u8> {
+    let proxy_url = get_proxy_url();
+
+    let body = format!(
+        "Tunnel Proxy Server\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 user@server",
+        proxy_url
+    );
+
+    error_response(400, &body)
+}
+
+/// Handle a single TCP connection with peek-based routing.
+async fn handle_connection(mut stream: TcpStream, state: Arc<AppState>) {
+    // Peek at the first bytes to extract Host header
+    let mut peek_buf = [0u8; 2048];
+    let n = match stream.peek(&mut peek_buf).await {
+        Ok(0) => {
+            debug!("Connection closed before data received");
+            return;
+        }
+        Ok(n) => n,
+        Err(e) => {
+            error!("Failed to peek data: {:?}", e);
+            return;
+        }
+    };
+
+    // Extract Host header from peeked data
+    let host = match extract_host_from_raw(&peek_buf[..n]) {
+        Some(h) => h,
+        None => {
+            warn!("No Host header found in request");
+            let response = tunnel_list_response();
+            let _ = stream.write_all(&response).await;
+            return;
+        }
+    };
+
+    // Extract subdomain from Host
+    let subdomain = match extract_subdomain(&host) {
         Some(s) => s,
         None => {
+            // No valid subdomain, show available tunnels
             let tunnels = state.list_tunnels().await;
             let proxy_url = get_proxy_url();
             let tunnel_list: Vec<String> = tunnels
@@ -59,22 +120,21 @@ async fn handle_http_request(
                 )
             };
 
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_REQUEST)
-                .body(Full::new(Bytes::from(body)))
-                .unwrap());
+            let response = error_response(400, &body);
+            let _ = stream.write_all(&response).await;
+            return;
         }
     };
 
     info!("HTTP request for subdomain: {}", subdomain);
 
+    // Look up tunnel
     let tunnel = match state.get_tunnel(&subdomain).await {
         Some(t) => t,
         None => {
-            return Ok(Response::builder()
-                .status(StatusCode::NOT_FOUND)
-                .body(Full::new(Bytes::from(format!("Tunnel '{}' not found", subdomain))))
-                .unwrap());
+            let response = error_response(404, &format!("Tunnel '{}' not found", subdomain));
+            let _ = stream.write_all(&response).await;
+            return;
         }
     };
 
@@ -83,101 +143,52 @@ async fn handle_http_request(
         subdomain, tunnel.requested_port
     );
 
+    // Open SSH forwarded channel
     let channel_result = tunnel
         .handle
         .channel_open_forwarded_tcpip(
             &tunnel.requested_address,
             tunnel.requested_port,
             "127.0.0.1",
-            12345, // Dummy originator port required by SSH protocol
+            stream.peer_addr().map(|a| a.port() as u32).unwrap_or(0),
         )
         .await;
 
-    let mut channel = match channel_result {
+    let channel = match channel_result {
         Ok(ch) => ch,
         Err(e) => {
             error!("Failed to open forwarded channel: {:?}", e);
-            return Ok(Response::builder()
-                .status(StatusCode::BAD_GATEWAY)
-                .body(Full::new(Bytes::from(format!("Failed to connect to tunnel: {:?}", e))))
-                .unwrap());
+            let response = error_response(502, &format!("Failed to connect to tunnel: {:?}", e));
+            let _ = stream.write_all(&response).await;
+            return;
         }
     };
 
     info!("Opened forwarded channel to client");
 
-    let method = req.method().clone();
-    let uri = req.uri().clone();
-    let path = uri.path_and_query().map(|p| p.to_string()).unwrap_or_else(|| "/".to_string());
-    
-    let http_request = format!(
-        "{} {} HTTP/1.1\r\nHost: localhost:{}\r\nConnection: close\r\n\r\n",
-        method, path, tunnel.requested_port
-    );
+    // Convert SSH channel to stream for bidirectional I/O
+    let mut channel_stream = channel.into_stream();
 
-    if let Err(e) = channel.data(http_request.as_bytes()).await {
-        error!("Failed to send data through channel: {:?}", e);
-        return Ok(Response::builder()
-            .status(StatusCode::BAD_GATEWAY)
-            .body(Full::new(Bytes::from("Failed to send request through tunnel")))
-            .unwrap());
-    }
+    // Bidirectional copy between TCP stream and SSH channel stream
+    let timeout = tokio::time::Duration::from_secs(300); // 5 minute timeout
+    let result = tokio::time::timeout(timeout, async {
+        copy_bidirectional(&mut stream, &mut channel_stream).await
+    })
+    .await;
 
-    channel.eof().await.ok();
-
-    let mut response_data = Vec::new();
-    let timeout = tokio::time::timeout(std::time::Duration::from_secs(30), async {
-        loop {
-            match channel.wait().await {
-                Some(msg) => {
-                    match msg {
-                        russh::ChannelMsg::Data { data } => {
-                            response_data.extend_from_slice(&data);
-                        }
-                        russh::ChannelMsg::Eof | russh::ChannelMsg::Close => {
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-                None => break,
-            }
+    match result {
+        Ok(Ok((to_ssh, to_tcp))) => {
+            info!(
+                "[{}] Connection completed: {} bytes to SSH, {} bytes to TCP",
+                subdomain, to_ssh, to_tcp
+            );
         }
-    });
-
-    if timeout.await.is_err() {
-        warn!("Timeout waiting for response from tunnel");
-        return Ok(Response::builder()
-            .status(StatusCode::GATEWAY_TIMEOUT)
-            .body(Full::new(Bytes::from("Timeout waiting for response")))
-            .unwrap());
-    }
-
-    info!("Received {} bytes from tunnel", response_data.len());
-
-    let response_str = String::from_utf8_lossy(&response_data);
-    
-    if let Some(body_start) = response_str.find("\r\n\r\n") {
-        let body = &response_data[body_start + 4..];
-        
-        let status = if response_str.starts_with("HTTP/1.") {
-            let status_line = response_str.lines().next().unwrap_or("");
-            status_line.split_whitespace().nth(1)
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(200)
-        } else {
-            200
-        };
-
-        Ok(Response::builder()
-            .status(StatusCode::from_u16(status).unwrap_or(StatusCode::OK))
-            .body(Full::new(Bytes::from(body.to_vec())))
-            .unwrap())
-    } else {
-        Ok(Response::builder()
-            .status(StatusCode::OK)
-            .body(Full::new(Bytes::from(response_data)))
-            .unwrap())
+        Ok(Err(e)) => {
+            debug!("[{}] Copy error (may be normal on close): {:?}", subdomain, e);
+        }
+        Err(_) => {
+            warn!("[{}] Connection timeout after 5 minutes", subdomain);
+        }
     }
 }
 
@@ -188,23 +199,11 @@ pub async fn run_http_proxy(state: Arc<AppState>, addr: &str) -> anyhow::Result<
 
     loop {
         let (stream, remote_addr) = listener.accept().await?;
-        let io = TokioIo::new(stream);
         let state = state.clone();
 
         tokio::spawn(async move {
             debug!("HTTP connection from {}", remote_addr);
-            
-            let service = service_fn(move |req| {
-                let state = state.clone();
-                handle_http_request(req, state)
-            });
-
-            if let Err(e) = http1::Builder::new()
-                .serve_connection(io, service)
-                .await
-            {
-                error!("HTTP connection error: {:?}", e);
-            }
+            handle_connection(stream, state).await;
         });
     }
 }
@@ -225,5 +224,23 @@ mod tests {
         );
         assert_eq!(extract_subdomain("localhost:8080"), None);
         assert_eq!(extract_subdomain("example.com"), None);
+    }
+
+    #[test]
+    fn test_extract_host_from_raw() {
+        let request = b"GET / HTTP/1.1\r\nHost: tunnel-abc.localhost:8080\r\nUser-Agent: curl\r\n\r\n";
+        assert_eq!(
+            extract_host_from_raw(request),
+            Some("tunnel-abc.localhost:8080".to_string())
+        );
+
+        let request_lower = b"GET / HTTP/1.1\r\nhost: tunnel-xyz.example.com\r\n\r\n";
+        assert_eq!(
+            extract_host_from_raw(request_lower),
+            Some("tunnel-xyz.example.com".to_string())
+        );
+
+        let no_host = b"GET / HTTP/1.1\r\nUser-Agent: curl\r\n\r\n";
+        assert_eq!(extract_host_from_raw(no_host), None);
     }
 }

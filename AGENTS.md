@@ -28,17 +28,23 @@ A self-hosted SSH reverse tunnel service. Uses a **Sidecar architecture** with t
 ## Directory Structure
 
 ```
-brasilia/
+brisbane/
 ├── apps/
 │   ├── tunnl/          # Rust SSH tunnel server
 │   │   └── src/
 │   │       ├── main.rs
 │   │       ├── lib.rs
-│   │       ├── ssh/        # SSH handler & server
-│   │       ├── proxy.rs    # HTTP proxy
-│   │       ├── device.rs   # Device flow auth
-│   │       ├── management.rs # Internal API (:9090)
-│   │       ├── state.rs    # AppState & TunnelInfo
+│   │       ├── ssh/           # SSH module
+│   │       │   ├── server.rs      # TunnelServer
+│   │       │   ├── handler.rs     # SshHandler struct
+│   │       │   ├── handler_impl.rs # Handler trait impl
+│   │       │   ├── tunnel.rs      # Tunnel creation
+│   │       │   ├── types.rs       # Shared types
+│   │       │   └── verification.rs # Device Flow polling
+│   │       ├── proxy.rs       # HTTP proxy
+│   │       ├── device.rs      # Device flow auth
+│   │       ├── management.rs  # Internal API (:9090)
+│   │       ├── state.rs       # AppState & TunnelInfo
 │   │       └── terminal_ui.rs
 │   ├── web/            # TanStack Start web dashboard
 │   │   └── src/
