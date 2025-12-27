@@ -50,12 +50,13 @@ src/
 ├── management.rs    # REST API (axum) for tunnel management
 ├── terminal_ui.rs   # Terminal output formatting
 └── ssh/
-    ├── mod.rs       # Module exports
-    ├── server.rs    # TunnelServer (russh Server impl)
-    ├── handler.rs   # SshHandler (per-connection handler)
-    ├── tunnel.rs    # Tunnel creation logic
-    ├── types.rs     # Shared types (PendingTunnel, VerificationStatus)
-    └── verification.rs  # Device Flow polling
+    ├── mod.rs          # Module exports
+    ├── server.rs       # TunnelServer (russh Server impl)
+    ├── handler.rs      # SshHandler struct and core methods
+    ├── handler_impl.rs # Handler trait implementation (SSH callbacks)
+    ├── tunnel.rs       # Tunnel creation logic
+    ├── types.rs        # Shared types (PendingTunnel, VerificationStatus)
+    └── verification.rs # Device Flow polling
 ```
 
 ## Tech Stack
