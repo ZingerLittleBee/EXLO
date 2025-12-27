@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { EmptyState } from '@/components/ui/empty-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getUser } from '@/functions/get-user'
-import { type ActiveTunnel, getTunnels, kickTunnel } from '@/functions/tunnels'
+import { type ActiveTunnel, getPublicConfig, getTunnels, kickTunnel } from '@/functions/tunnels'
 
 export const Route = createFileRoute('/tunnels')({
   component: TunnelsLayout,
@@ -23,9 +23,8 @@ export const Route = createFileRoute('/tunnels')({
         search: {}
       })
     }
-    const data = await getTunnels()
-    const proxyUrl = process.env.PROXY_URL || 'http://localhost:8080'
-    return { initialTunnels: data.tunnels, proxyUrl }
+    const [data, config] = await Promise.all([getTunnels(), getPublicConfig()])
+    return { initialTunnels: data.tunnels, proxyUrl: config.proxyUrl }
   }
 })
 

@@ -7,7 +7,7 @@ use log::{debug, error, info, warn};
 use tokio::io::{AsyncWriteExt, copy_bidirectional};
 use tokio::net::{TcpListener, TcpStream};
 
-use crate::config::{get_proxy_url, get_tunnel_url};
+use crate::config::{get as get_config, get_tunnel_url};
 use crate::state::AppState;
 
 /// Extract subdomain from Host header.
@@ -61,7 +61,7 @@ fn error_response(status: u16, message: &str) -> Vec<u8> {
 
 /// Generate tunnel list response.
 fn tunnel_list_response() -> Vec<u8> {
-    let proxy_url = get_proxy_url();
+    let proxy_url = &get_config().proxy_url;
 
     let body = format!(
         "Tunnel Proxy Server\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 user@server",
@@ -104,7 +104,7 @@ async fn handle_connection(mut stream: TcpStream, state: Arc<AppState>) {
         None => {
             // No valid subdomain, show available tunnels
             let tunnels = state.list_tunnels().await;
-            let proxy_url = get_proxy_url();
+            let proxy_url = &get_config().proxy_url;
             let tunnel_list: Vec<String> = tunnels
                 .iter()
                 .map(|t| format!("  - {}", get_tunnel_url(&t.subdomain)))

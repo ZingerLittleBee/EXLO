@@ -1,6 +1,7 @@
 import { db, eq } from '@exlo/db'
 import { tunnels } from '@exlo/db/schema/index'
 import { createServerFn } from '@tanstack/react-start'
+import { env } from '@/lib/env'
 import { authMiddleware } from '@/middleware/auth'
 
 // Type for active tunnel from the Rust API
@@ -29,14 +30,12 @@ interface TunnelsListResponse {
   tunnels: ActiveTunnel[]
 }
 
-const MANAGEMENT_API_URL = process.env.TUNNL_MANAGEMENT_API_URL || 'http://127.0.0.1:9090'
-
 // Server function to fetch all active tunnels from Rust API
 export const getTunnels = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => {
     try {
-      const response = await fetch(`${MANAGEMENT_API_URL}/tunnels`, {
+      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -86,6 +85,15 @@ export const getAllStoredTunnels = createServerFn({ method: 'GET' })
     }
   })
 
+// Server function to get public config (avoids exposing server env to client)
+export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async () => {
+  return {
+    proxyUrl: env.PROXY_URL,
+    sshHost: env.SSH_HOST,
+    sshPort: env.SSH_PORT
+  }
+})
+
 // Server function to kick a tunnel
 export const kickTunnel = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
@@ -98,7 +106,7 @@ export const kickTunnel = createServerFn({ method: 'POST' })
     }
 
     try {
-      const response = await fetch(`${MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
+      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'

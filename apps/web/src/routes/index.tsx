@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { type DashboardMetrics, getDashboardMetrics, getRecentTunnels } from '@/functions/dashboard'
 import { getUser } from '@/functions/get-user'
-import { type ActiveTunnel, kickTunnel } from '@/functions/tunnels'
+import { type ActiveTunnel, getPublicConfig, kickTunnel } from '@/functions/tunnels'
 
 export const Route = createFileRoute('/')({
   component: HomeLayout,
@@ -26,11 +26,18 @@ export const Route = createFileRoute('/')({
         search: {}
       })
     }
-    const [metrics, recentTunnels] = await Promise.all([getDashboardMetrics(), getRecentTunnels()])
-    const proxyUrl = process.env.PROXY_URL || 'http://localhost:8080'
-    const sshHost = process.env.SSH_HOST || 'localhost'
-    const sshPort = process.env.SSH_PORT || '2222'
-    return { initialMetrics: metrics, initialTunnels: recentTunnels.tunnels, proxyUrl, sshHost, sshPort }
+    const [metrics, recentTunnels, config] = await Promise.all([
+      getDashboardMetrics(),
+      getRecentTunnels(),
+      getPublicConfig()
+    ])
+    return {
+      initialMetrics: metrics,
+      initialTunnels: recentTunnels.tunnels,
+      proxyUrl: config.proxyUrl,
+      sshHost: config.sshHost,
+      sshPort: config.sshPort
+    }
   }
 })
 
