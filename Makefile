@@ -56,13 +56,20 @@ dev-tunnl: ## Run tunnl in dev mode
 dev-landing: ## Run landing page in dev mode
 	bun dev:landing
 
+dev-test-server: ## Run local test HTTP server on port 8000
+	python3 -m http.server 8000
+
+dev-ssh-client: ## Test SSH reverse tunnel connection
+	ssh -R 8000:localhost:8000 -p 2222 localhost
+
 dev-all: ## Run all dev services in parallel
 	@echo "Starting all development services..."
 	@trap 'kill 0' EXIT; \
 	bun dev:web & \
+	(cd apps/tunnl && RUST_LOG=info cargo run) & \
+	python3 -m http.server 8000 & \
 	bun dev:landing & \
 	bun dev:docs & \
-	(cd apps/tunnl && RUST_LOG=info cargo run) & \
 	wait
 
 # ==================== Build ====================

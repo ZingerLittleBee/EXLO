@@ -51,6 +51,16 @@ Parameter explanation:
 - `-R 8000:localhost:8000`: Forward local port 8000
 - `-p 2222`: SSH server port
 
+> [!IMPORTANT]
+> **Port Consistency Requirement**
+> 
+> The remote port (first number) and local port (second number) **must be identical** in the `-R` parameter. Due to SSH protocol limitations, the server cannot determine your actual local port, so it relies on the remote port you specify to match your local service port.
+>
+> **Note**: Mismatched ports will **NOT** cause the connection to close immediately, but the tips displayed in the terminal may be incorrect. Always ensure the ports match.
+>
+> ✅ Correct: `ssh -R 8000:localhost:8000` (both ports are 8000)
+> ❌ Incorrect: `ssh -R 8080:localhost:8000` (mismatched ports - connection won't close but tunnel won't work)
+
 ### 2. Complete Device Flow Authentication
 
 After connecting, the terminal will display an authentication prompt:

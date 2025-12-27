@@ -13,6 +13,13 @@ use crate::state::{AppState, TunnelInfo};
 
 use super::types::{SharedHandlerState, VerificationStatus};
 
+/// Result of tunnel creation
+#[derive(Debug, Clone)]
+pub struct CreateTunnelResult {
+    /// Whether the tunnel was created successfully
+    pub success: bool,
+}
+
 /// Create a tunnel after verification
 pub async fn create_tunnel(
     address: &str,
@@ -22,21 +29,22 @@ pub async fn create_tunnel(
     app_state: &Arc<AppState>,
     peer_addr: Option<std::net::SocketAddr>,
     username: Option<&str>,
+    public_key_fingerprint: Option<&str>,
     generate_subdomain: impl std::future::Future<Output = String>,
-) -> Result<bool, TunnelError> {
+) -> Result<CreateTunnelResult, TunnelError> {
     let handle = match session_handle {
         Some(h) => h.clone(),
         None => {
             error!("No session handle available!");
-            return Ok(false);
+            return Ok(CreateTunnelResult { success: false });
         }
     };
 
-    // Use last_subdomain if available (reconnection), otherwise generate new one
+    // Use last_subdomains if available for this port (reconnection), otherwise generate new one
     let (subdomain, is_reconnect) = {
         let state = shared_state.lock().await;
-        if let Some(ref last) = state.last_subdomain {
-            info!("Reusing subdomain from previous session: {}", last);
+        if let Some(last) = state.last_subdomains.get(&port) {
+            info!("Reusing subdomain from previous session for port {}: {}", port, last);
             (last.clone(), true)
         } else {
             drop(state);
@@ -92,12 +100,41 @@ pub async fn create_tunnel(
                 .lock()
                 .await
                 .registered_subdomains
-                .push(subdomain);
-            Ok(true)
+                .push(subdomain.clone());
+            // Store subdomain by port for future reconnections
+            shared_state
+                .lock()
+                .await
+                .last_subdomains
+                .insert(port, subdomain.clone());
+            
+            // Save to verified_key for persistence across sessions
+            if let Some(fingerprint) = public_key_fingerprint {
+                let (user_id, display_name) = {
+                    let state = shared_state.lock().await;
+                    match &state.verification_status {
+                        VerificationStatus::Verified { user_id, display_name } => {
+                            (user_id.clone(), Some(display_name.clone()))
+                        }
+                        _ => (username.unwrap_or("anonymous").to_string(), None),
+                    }
+                };
+                app_state
+                    .save_verified_key(
+                        fingerprint,
+                        &user_id,
+                        display_name.as_deref(),
+                        port,
+                        &subdomain,
+                    )
+                    .await;
+            }
+            
+            Ok(CreateTunnelResult { success: true })
         }
         Err(TunnelError::SubdomainTaken(s)) => {
             warn!("Subdomain {} already taken", s);
-            Ok(false)
+            Ok(CreateTunnelResult { success: false })
         }
         Err(e) => {
             error!("Failed to register tunnel: {}", e);

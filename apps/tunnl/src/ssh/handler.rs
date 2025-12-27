@@ -17,7 +17,7 @@ use crate::error::TunnelError;
 use crate::state::AppState;
 use crate::terminal_ui;
 
-use super::tunnel::create_tunnel;
+use super::tunnel::{create_tunnel, CreateTunnelResult};
 use super::types::{
     generate_secure_subdomain_id, generate_session_id, PendingTunnel, SharedHandlerState,
     VerificationStatus,
@@ -67,7 +67,7 @@ impl SshHandler {
         format!("tunnel-{}-{}", random_id, state.subdomain_counter)
     }
 
-    async fn send_reconnect_message(&self, port: u32) {
+    async fn send_tunnel_message(&self, port: u32) {
         let (display_name, tunnels) = {
             let state = self.shared_state.lock().await;
             let display_name = match &state.verification_status {
@@ -86,33 +86,33 @@ impl SshHandler {
             return;
         }
 
-        let message = terminal_ui::create_reconnect_box(&display_name, &tunnels);
+        let message = terminal_ui::create_success_box(&display_name, &tunnels);
 
         info!(
-            "send_reconnect_message: session_handle={}, session_channel_id={:?}",
+            "send_tunnel_message: session_handle={}, session_channel_id={:?}",
             self.session_handle.is_some(),
             self.session_channel_id
         );
 
         if let (Some(handle), Some(channel_id)) = (&self.session_handle, self.session_channel_id) {
-            info!("Sending reconnect message to channel {:?}", channel_id);
+            info!("Sending tunnel message to channel {:?}", channel_id);
             if let Err(e) = handle
                 .data(channel_id, message.into_bytes().into())
                 .await
             {
-                warn!("Failed to send reconnect message via session channel: {:?}", e);
+                warn!("Failed to send tunnel message via session channel: {:?}", e);
             } else {
-                info!("Reconnect message sent to client");
+                info!("Tunnel message sent to client");
                 return;
             }
         }
 
-        // Session channel not ready yet, save port for later
+        // Session channel not ready yet, save for later
         {
             let mut state = self.shared_state.lock().await;
-            state.pending_reconnect_port = Some(port);
+            state.pending_tunnel_port = Some(port);
             info!(
-                "Session channel not ready, deferring reconnect message (port={})",
+                "Session channel not ready, deferring tunnel message (port={})",
                 port
             );
         }
@@ -223,7 +223,7 @@ impl SshHandler {
         }
     }
 
-    async fn do_create_tunnel(&self, address: &str, port: u32) -> Result<bool, TunnelError> {
+    async fn do_create_tunnel(&self, address: &str, port: u32) -> Result<CreateTunnelResult, TunnelError> {
         create_tunnel(
             address,
             port,
@@ -232,6 +232,7 @@ impl SshHandler {
             &self.state,
             self.peer_addr,
             self.username.as_deref(),
+            self.public_key_fingerprint.as_deref(),
             self.generate_subdomain(),
         )
         .await
@@ -288,8 +289,8 @@ impl Handler for SshHandler {
 
         if let Some(verified_key) = self.state.get_verified_key(&fingerprint_str).await {
             info!(
-                "Public key already verified for user '{}', subdomain={:?}, skipping Device Flow",
-                verified_key.user_id, verified_key.last_subdomain
+                "Public key already verified for user '{}', subdomains={:?}, skipping Device Flow",
+                verified_key.user_id, verified_key.subdomains
             );
             let display_name = verified_key.get_display_name();
             let mut state = self.shared_state.lock().await;
@@ -297,7 +298,7 @@ impl Handler for SshHandler {
                 user_id: verified_key.user_id,
                 display_name,
             };
-            state.last_subdomain = verified_key.last_subdomain;
+            state.last_subdomains = verified_key.subdomains;
         }
 
         Ok(Auth::Accept)
@@ -330,16 +331,17 @@ impl Handler for SshHandler {
                     display_name: dev_user,
                 };
             }
-            return self.do_create_tunnel(address, *port).await;
+            let result = self.do_create_tunnel(address, *port).await?;
+            return Ok(result.success);
         }
 
-        // If already verified (reconnection), create tunnel immediately
+        // If already verified (reconnection or new port), create tunnel immediately
         if self.is_verified().await {
             let result = self.do_create_tunnel(address, *port).await?;
-            if result {
-                self.send_reconnect_message(*port).await;
+            if result.success {
+                self.send_tunnel_message(*port).await;
             }
-            return Ok(result);
+            return Ok(result.success);
         }
 
         // Store the tunnel request as pending
@@ -408,45 +410,16 @@ impl Handler for SshHandler {
         self.session_channel_id = Some(channel_id);
         self.shared_state.lock().await.session_channel_id = Some(channel_id);
 
-        // Check if there's a pending reconnect message from tcpip_forward
-        let pending_port = {
-            let mut state = self.shared_state.lock().await;
-            state.pending_reconnect_port.take()
-        };
-
-        // Note: pending_reconnect_port will be handled in shell_request
-        if pending_port.is_some() {
-            let mut state = self.shared_state.lock().await;
-            state.pending_reconnect_port = pending_port;
-        }
+        // pending_message will be handled in shell_request
+        // Don't send any message here - wait for tunnel creation
 
         // Check verification status for new connections
         let status = self.get_verification_status().await;
 
         match status {
-            VerificationStatus::Verified { ref display_name, .. } => {
-                let tunnels: Vec<(String, u32)> = {
-                    let state = self.shared_state.lock().await;
-                    let port = state.pending_tunnels.first().map(|t| t.port).unwrap_or(0);
-                    if !state.registered_subdomains.is_empty() {
-                        state
-                            .registered_subdomains
-                            .iter()
-                            .map(|s| (s.clone(), port))
-                            .collect()
-                    } else if let Some(ref last) = state.last_subdomain {
-                        vec![(last.clone(), port)]
-                    } else {
-                        Vec::new()
-                    }
-                };
-
-                if !tunnels.is_empty() {
-                    let message = terminal_ui::create_reconnect_box(display_name, &tunnels);
-                    if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
-                        warn!("Failed to send reconnect message: {:?}", e);
-                    }
-                }
+            VerificationStatus::Verified { .. } => {
+                // Already verified, tunnels will be created in tcpip_forward
+                // Message will be sent after tunnel creation
             }
             VerificationStatus::NotStarted => {
                 match self.start_device_flow().await {
@@ -567,10 +540,10 @@ impl Handler for SshHandler {
         info!("Shell request on channel {:?}", channel);
         session.channel_success(channel)?;
 
-        // Check if there's a pending reconnect message
+        // Check if there's a pending tunnel message
         let pending_port = {
             let mut state = self.shared_state.lock().await;
-            state.pending_reconnect_port.take()
+            state.pending_tunnel_port.take()
         };
 
         if let Some(port) = pending_port {
@@ -589,11 +562,11 @@ impl Handler for SshHandler {
             };
 
             if !tunnels.is_empty() {
-                let message = terminal_ui::create_reconnect_box(&display_name, &tunnels);
+                let message = terminal_ui::create_success_box(&display_name, &tunnels);
                 if let Err(e) = session.data(channel, message.into_bytes().into()) {
-                    warn!("Failed to send reconnect message in shell_request: {:?}", e);
+                    warn!("Failed to send tunnel message in shell_request: {:?}", e);
                 } else {
-                    info!("Reconnect message sent in shell_request");
+                    info!("Tunnel message sent in shell_request");
                 }
             }
             return Ok(());

@@ -56,12 +56,14 @@ main_menu() {
 # Development submenu
 dev_menu() {
     CMD=$(gum choose \
-        "dev-web       Start Web dashboard" \
-        "dev-landing   Start Landing page" \
-        "dev-docs      Start Documentation" \
-        "dev-tunnl     Start Tunnl (Rust)" \
-        "dev-all       Start all services" \
-        "init-dev-db   Initialize dev database" \
+        "dev-web         Start Web dashboard" \
+        "dev-tunnl       Start Tunnl (Rust)" \
+        "dev-test-server Start local test HTTP server" \
+        "dev-ssh-client  Test SSH reverse tunnel" \
+        "dev-landing     Start Landing page" \
+        "dev-docs        Start Documentation" \
+        "dev-all         Start all services" \
+        "init-dev-db     Initialize dev database" \
         "<- Back")
 
     run_command "$CMD"
