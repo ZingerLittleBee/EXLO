@@ -1,9 +1,11 @@
 import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
+import { Cable } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getUser } from '@/functions/get-user'
 import { type ActiveTunnel, getTunnels, kickTunnel } from '@/functions/tunnels'
@@ -124,6 +126,8 @@ function TunnelsDashboard() {
       setTunnels((prev) => prev.filter((t) => t.subdomain !== subdomain))
       // Also invalidate router to refresh data
       router.invalidate()
+      // Fetch fresh data to ensure consistency
+      await fetchTunnels()
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to kick tunnel')
       // Refresh to get current state
@@ -178,29 +182,18 @@ function TunnelsDashboard() {
         </CardHeader>
         <CardContent>
           {tunnels.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              <svg
-                className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <title>No tunnels</title>
-                <path
-                  d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                />
-              </svg>
-              <p className="font-medium text-lg">No active tunnels</p>
-              <p className="mt-1 text-sm">
-                Connect with:{' '}
-                <code className="rounded bg-muted px-2 py-1 text-xs">
-                  ssh -R 8000:localhost:8000 -p 2222 user@server
-                </code>
-              </p>
-            </div>
+            <EmptyState
+              description={
+                <>
+                  Connect with:{' '}
+                  <code className="rounded bg-muted px-2 py-1 text-xs">
+                    ssh -R 8000:localhost:8000 -p 2222 user@server
+                  </code>
+                </>
+              }
+              icon={Cable}
+              title="No active tunnels"
+            />
           ) : (
             <Table>
               <TableHeader>

@@ -163,6 +163,26 @@ impl AppState {
     }
 
     /// Check if an IP is rate-limited for Device Flow requests
+    /// and record the request atomically to prevent race conditions.
+    /// Returns true if rate-limited (request should be rejected).
+    pub async fn check_and_record_device_flow(&self, ip: IpAddr) -> bool {
+        let mut limits = self.rate_limits.write().await;
+        
+        if let Some(entry) = limits.get_mut(&ip) {
+            if entry.is_rate_limited() {
+                return true;
+            }
+            entry.record_attempt();
+            false
+        } else {
+            // First request from this IP - not rate limited, but record it
+            limits.insert(ip, RateLimitEntry::new());
+            false
+        }
+    }
+
+    /// Check if an IP is rate-limited for Device Flow requests (read-only check)
+    #[deprecated(note = "Use check_and_record_device_flow for atomic operation")]
     pub async fn is_device_flow_rate_limited(&self, ip: IpAddr) -> bool {
         let limits = self.rate_limits.read().await;
         if let Some(entry) = limits.get(&ip) {
@@ -173,6 +193,7 @@ impl AppState {
     }
 
     /// Record a Device Flow request from an IP
+    #[deprecated(note = "Use check_and_record_device_flow for atomic operation")]
     pub async fn record_device_flow_request(&self, ip: IpAddr) {
         let mut limits = self.rate_limits.write().await;
         if let Some(entry) = limits.get_mut(&ip) {

@@ -278,11 +278,12 @@ async fn create_pending_tunnels(
                      URL: {}",
                     subdomain, tunnel_url
                 );
-                shared_state
-                    .lock()
-                    .await
-                    .registered_subdomains
-                    .push(subdomain.clone());
+                {
+                    let mut state = shared_state.lock().await;
+                    state.registered_subdomains.push(subdomain.clone());
+                    // Set last_subdomain for future reconnections
+                    state.last_subdomain = Some(subdomain.clone());
+                }
                 created_tunnels.push((subdomain.clone(), pending.port));
 
                 // Save verified key with subdomain for reconnection

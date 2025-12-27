@@ -155,10 +155,10 @@ impl SshHandler {
     }
 
     async fn start_device_flow(&mut self) -> Result<String, String> {
-        // Check rate limiting
+        // Check rate limiting atomically
         if let Some(peer) = self.peer_addr {
             let ip = peer.ip();
-            if self.state.is_device_flow_rate_limited(ip).await {
+            if self.state.check_and_record_device_flow(ip).await {
                 let reason = "Rate limited: too many Device Flow requests. Please wait before trying again.".to_string();
                 warn!("Device Flow rate limited for IP: {}", ip);
                 {
@@ -169,24 +169,23 @@ impl SshHandler {
                 }
                 return Err(reason);
             }
-            self.state.record_device_flow_request(ip).await;
         }
 
         let code = generate_activation_code();
         let session_id = self.session_id.clone();
         let client = self.device_flow_client.clone();
 
-        info!("Starting Device Flow with code: {}", code);
+        debug!("Starting Device Flow with code: {}", code);
 
         match client.register_code(&code, &session_id).await {
             Ok(()) => {
                 let activation_url = client.get_activation_url(&code);
 
-                info!(
+                debug!(
                     "Device Flow started!\n\
-                     Code: {}\n\
+                     Code: [REDACTED]\n\
                      URL: {}",
-                    code, activation_url
+                    activation_url
                 );
 
                 {
@@ -360,9 +359,8 @@ impl Handler for SshHandler {
         let status = self.get_verification_status().await;
         if matches!(status, VerificationStatus::NotStarted) {
             match self.start_device_flow().await {
-                Ok(code) => {
-                    let url = self.device_flow_client.get_activation_url(&code);
-                    info!("Device Flow started - Code: {}, URL: {}", code, url);
+                Ok(_code) => {
+                    debug!("Device Flow started for pending tunnel");
                 }
                 Err(reason) => {
                     warn!("Device Flow failed: {}", reason);
@@ -454,7 +452,7 @@ impl Handler for SshHandler {
                 match self.start_device_flow().await {
                     Ok(code) => {
                         let url = self.device_flow_client.get_activation_url(&code);
-                        info!("Device Flow started - Code: {}, URL: {}", code, url);
+                        debug!("Device Flow started - URL: {}", url);
 
                         let message = terminal_ui::create_activation_box(&code, &url);
                         if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
@@ -617,6 +615,11 @@ impl Handler for SshHandler {
 
 impl Drop for SshHandler {
     fn drop(&mut self) {
+        // Cancel the polling task if it's still running
+        if let Some(cancel) = self.poll_cancel.take() {
+            let _ = cancel.send(());
+        }
+        
         // When the handler is dropped (connection closed), clean up tunnels
         let state = self.state.clone();
         let shared_state = self.shared_state.clone();
