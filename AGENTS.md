@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A self-hosted SSH reverse tunnel service (ngrok/tunnl.gg alternative). Uses a **Sidecar architecture** with two main components communicating via internal API.
+A self-hosted SSH reverse tunnel service. Uses a **Sidecar architecture** with two main components communicating via internal API.
 
 ## Architecture
 

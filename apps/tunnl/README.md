@@ -1,6 +1,6 @@
 # 🚀 tunnl - SSH Reverse Tunnel Server
 
-A high-performance SSH reverse tunnel server similar to ngrok/Cloudflare Tunnel, written in Rust.
+A high-performance SSH reverse tunnel server written in Rust.
 
 ## Features
 

@@ -1,6 +1,8 @@
-# Self-Hosted SSH Reverse Tunnel Service
+# EXLO
 
-A self-hosted, open-source alternative to ngrok/tunnl.gg, designed for privacy and control.
+> Expose localhost to the Internet securely. No downloads, no setup. Open-source & self-hosted.
+
+A self-hosted SSH reverse tunnel service, designed for privacy and control.
 
 [中文说明](README.zh-CN.md) · [Disclaimer](DISCLAIMER.md)
 

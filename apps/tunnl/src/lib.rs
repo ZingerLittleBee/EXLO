@@ -1,6 +1,6 @@
 //! SSH Reverse Tunnel Server library.
 //!
-//! Provides components for building an ngrok-like tunnel service.
+//! Provides components for building a tunnel service.
 
 pub mod config;
 pub mod device;
