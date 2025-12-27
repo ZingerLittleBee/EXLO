@@ -133,7 +133,7 @@ PROXY_URL=http://localhost:8080
 
 ## Development Flow
 
-1. User connects via `ssh -R 80:localhost:PORT -p 2222 user@host`
+1. User connects via `ssh -R 8000:localhost:8000 -p 2222 user@host`
 2. Rust server generates activation code, shows in terminal
 3. User visits `/activate` in browser, enters code
 4. On verification, tunnel is registered with user association
