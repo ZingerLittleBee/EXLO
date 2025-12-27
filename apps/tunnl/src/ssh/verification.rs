@@ -8,7 +8,7 @@ use log::{error, info, warn};
 use russh::Disconnect;
 use tokio::sync::{oneshot, Mutex};
 
-use crate::device::{DeviceFlowClient, RegisterTunnelRequest};
+use crate::device::{DeviceFlowClient, RegisterTunnelRequest, VerifiedUser};
 use crate::state::{AppState, TunnelInfo};
 use crate::terminal_ui;
 
@@ -69,7 +69,7 @@ pub fn spawn_verification_polling(
 }
 
 async fn handle_verification_result(
-    result: Result<String, anyhow::Error>,
+    result: Result<VerifiedUser, anyhow::Error>,
     shared_state: Arc<Mutex<SharedHandlerState>>,
     app_state: Arc<AppState>,
     client: Arc<DeviceFlowClient>,
@@ -78,10 +78,10 @@ async fn handle_verification_result(
     public_key_fingerprint: Option<String>,
 ) {
     match result {
-        Ok(user_id) => {
-            info!("Device Flow verified! User ID: {}", user_id);
+        Ok(verified_user) => {
+            info!("Device Flow verified! User ID: {}", verified_user.user_id);
             handle_verification_success(
-                user_id,
+                verified_user,
                 shared_state,
                 app_state,
                 client,
@@ -100,7 +100,7 @@ async fn handle_verification_result(
 }
 
 async fn handle_verification_success(
-    user_id: String,
+    verified_user: VerifiedUser,
     shared_state: Arc<Mutex<SharedHandlerState>>,
     app_state: Arc<AppState>,
     client: Arc<DeviceFlowClient>,
@@ -108,10 +108,14 @@ async fn handle_verification_success(
     peer_addr: Option<SocketAddr>,
     public_key_fingerprint: Option<String>,
 ) {
+    let user_id = verified_user.user_id.clone();
+    let display_name = verified_user.display_name();
+
     let (session_handle, session_channel_id, pending_tunnels) = {
         let mut state = shared_state.lock().await;
         state.verification_status = VerificationStatus::Verified {
             user_id: user_id.clone(),
+            display_name: display_name.clone(),
         };
         (
             state.session_handle.clone(),
@@ -136,6 +140,7 @@ async fn handle_verification_success(
         pending_tunnels,
         &handle,
         &user_id,
+        &display_name,
         &client_ip,
         session_channel_id,
         &shared_state,
@@ -148,7 +153,7 @@ async fn handle_verification_success(
 
     // Send success message to SSH client
     if let Some(channel_id) = session_channel_id {
-        let success_msg = terminal_ui::create_success_box(&user_id, &created_tunnels);
+        let success_msg = terminal_ui::create_success_box(&display_name, &created_tunnels);
         if let Err(e) = handle
             .data(channel_id, success_msg.into_bytes().into())
             .await
@@ -192,6 +197,7 @@ async fn create_pending_tunnels(
     pending_tunnels: Vec<PendingTunnel>,
     handle: &russh::server::Handle,
     user_id: &str,
+    display_name: &str,
     client_ip: &str,
     session_channel_id: Option<russh::ChannelId>,
     shared_state: &Arc<Mutex<SharedHandlerState>>,
@@ -282,7 +288,7 @@ async fn create_pending_tunnels(
                 // Save verified key with subdomain for reconnection
                 if let Some(fingerprint) = public_key_fingerprint {
                     app_state
-                        .save_verified_key(fingerprint, user_id, Some(&subdomain))
+                        .save_verified_key(fingerprint, user_id, Some(display_name), Some(&subdomain))
                         .await;
                 }
 

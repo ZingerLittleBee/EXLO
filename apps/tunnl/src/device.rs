@@ -69,7 +69,34 @@ pub struct CheckCodeResponse {
     pub status: String,
     #[serde(rename = "userId")]
     pub user_id: Option<String>,
+    #[serde(rename = "userName")]
+    pub user_name: Option<String>,
     pub error: Option<String>,
+}
+
+/// Verified user information returned from Device Flow
+#[derive(Debug, Clone)]
+pub struct VerifiedUser {
+    pub user_id: String,
+    pub user_name: Option<String>,
+}
+
+impl VerifiedUser {
+    /// Get display name (user_name if available, otherwise truncated user_id)
+    pub fn display_name(&self) -> String {
+        self.user_name
+            .clone()
+            .unwrap_or_else(|| truncate_user_id(&self.user_id))
+    }
+}
+
+/// Truncate user_id for display (shared utility)
+pub fn truncate_user_id(user_id: &str) -> String {
+    if user_id.len() > 12 {
+        format!("{}...", &user_id[..12])
+    } else {
+        user_id.to_string()
+    }
 }
 
 /// Generate a random activation code (e.g., "AF3D-1234")
@@ -166,7 +193,7 @@ impl DeviceFlowClient {
     pub async fn poll_until_verified(
         &self,
         code: &str,
-    ) -> Result<String, anyhow::Error> {
+    ) -> Result<VerifiedUser, anyhow::Error> {
         let interval = Duration::from_secs(self.config.poll_interval_secs);
         
         for attempt in 0..self.config.max_poll_attempts {
@@ -179,8 +206,15 @@ impl DeviceFlowClient {
                     match response.status.as_str() {
                         "verified" => {
                             if let Some(user_id) = response.user_id {
+                                if user_id.is_empty() {
+                                    warn!("Received empty user_id from API");
+                                    continue;
+                                }
                                 info!("Code {} verified by user {}", code, user_id);
-                                return Ok(user_id);
+                                return Ok(VerifiedUser {
+                                    user_id,
+                                    user_name: response.user_name,
+                                });
                             }
                         }
                         "expired" => {

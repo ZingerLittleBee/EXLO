@@ -60,8 +60,8 @@ pub enum VerificationStatus {
     NotStarted,
     /// Waiting for user to verify via web
     Pending { code: String },
-    /// Verified with user ID
-    Verified { user_id: String },
+    /// Verified with user ID and display name
+    Verified { user_id: String, display_name: String },
     /// Verification failed or timed out
     Failed { reason: String },
 }
@@ -134,9 +134,9 @@ mod tests {
 
     #[test]
     fn test_verification_status_equality() {
-        let status1 = VerificationStatus::Verified { user_id: "user1".to_string() };
-        let status2 = VerificationStatus::Verified { user_id: "user1".to_string() };
-        let status3 = VerificationStatus::Verified { user_id: "user2".to_string() };
+        let status1 = VerificationStatus::Verified { user_id: "user1".to_string(), display_name: "User 1".to_string() };
+        let status2 = VerificationStatus::Verified { user_id: "user1".to_string(), display_name: "User 1".to_string() };
+        let status3 = VerificationStatus::Verified { user_id: "user2".to_string(), display_name: "User 2".to_string() };
         
         assert_eq!(status1, status2);
         assert_ne!(status1, status3);

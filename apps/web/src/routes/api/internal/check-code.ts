@@ -1,5 +1,5 @@
 import { db, eq } from '@exlo/db'
-import { activationCodes } from '@exlo/db/schema/index'
+import { activationCodes, user } from '@exlo/db/schema/index'
 import { createFileRoute } from '@tanstack/react-router'
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || 'dev-secret'
@@ -28,7 +28,10 @@ export const Route = createFileRoute('/api/internal/check-code')({
 
         try {
           const result = await db.query.activationCodes.findFirst({
-            where: eq(activationCodes.code, code)
+            where: eq(activationCodes.code, code),
+            with: {
+              user: true
+            }
           })
 
           if (!result) {
@@ -48,6 +51,7 @@ export const Route = createFileRoute('/api/internal/check-code')({
             JSON.stringify({
               status: result.status,
               userId: result.userId,
+              userName: result.user?.name,
               sessionId: result.sessionId
             }),
             {

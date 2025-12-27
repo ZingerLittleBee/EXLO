@@ -68,10 +68,10 @@ impl SshHandler {
     }
 
     async fn send_reconnect_message(&self, port: u32) {
-        let (user_id, tunnels) = {
+        let (display_name, tunnels) = {
             let state = self.shared_state.lock().await;
-            let user_id = match &state.verification_status {
-                VerificationStatus::Verified { user_id } => user_id.clone(),
+            let display_name = match &state.verification_status {
+                VerificationStatus::Verified { display_name, .. } => display_name.clone(),
                 _ => "unknown".to_string(),
             };
             let tunnels: Vec<(String, u32)> = state
@@ -79,14 +79,14 @@ impl SshHandler {
                 .iter()
                 .map(|s| (s.clone(), port))
                 .collect();
-            (user_id, tunnels)
+            (display_name, tunnels)
         };
 
         if tunnels.is_empty() {
             return;
         }
 
-        let message = terminal_ui::create_reconnect_box(&user_id, &tunnels);
+        let message = terminal_ui::create_reconnect_box(&display_name, &tunnels);
 
         info!(
             "send_reconnect_message: session_handle={}, session_channel_id={:?}",
@@ -292,9 +292,11 @@ impl Handler for SshHandler {
                 "Public key already verified for user '{}', subdomain={:?}, skipping Device Flow",
                 verified_key.user_id, verified_key.last_subdomain
             );
+            let display_name = verified_key.get_display_name();
             let mut state = self.shared_state.lock().await;
             state.verification_status = VerificationStatus::Verified {
                 user_id: verified_key.user_id,
+                display_name,
             };
             state.last_subdomain = verified_key.last_subdomain;
         }
@@ -323,8 +325,10 @@ impl Handler for SshHandler {
             if !self.is_verified().await {
                 warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification (development mode)");
                 let mut state = self.shared_state.lock().await;
+                let dev_user = self.username.clone().unwrap_or_else(|| "dev".to_string());
                 state.verification_status = VerificationStatus::Verified {
-                    user_id: self.username.clone().unwrap_or_else(|| "dev".to_string()),
+                    user_id: dev_user.clone(),
+                    display_name: dev_user,
                 };
             }
             return self.do_create_tunnel(address, *port).await;
@@ -422,7 +426,7 @@ impl Handler for SshHandler {
         let status = self.get_verification_status().await;
 
         match status {
-            VerificationStatus::Verified { ref user_id } => {
+            VerificationStatus::Verified { ref display_name, .. } => {
                 let tunnels: Vec<(String, u32)> = {
                     let state = self.shared_state.lock().await;
                     let port = state.pending_tunnels.first().map(|t| t.port).unwrap_or(0);
@@ -440,7 +444,7 @@ impl Handler for SshHandler {
                 };
 
                 if !tunnels.is_empty() {
-                    let message = terminal_ui::create_reconnect_box(user_id, &tunnels);
+                    let message = terminal_ui::create_reconnect_box(display_name, &tunnels);
                     if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
                         warn!("Failed to send reconnect message: {:?}", e);
                     }
@@ -572,10 +576,10 @@ impl Handler for SshHandler {
         };
 
         if let Some(port) = pending_port {
-            let (user_id, tunnels) = {
+            let (display_name, tunnels) = {
                 let state = self.shared_state.lock().await;
-                let user_id = match &state.verification_status {
-                    VerificationStatus::Verified { user_id } => user_id.clone(),
+                let display_name = match &state.verification_status {
+                    VerificationStatus::Verified { display_name, .. } => display_name.clone(),
                     _ => "unknown".to_string(),
                 };
                 let tunnels: Vec<(String, u32)> = state
@@ -583,11 +587,11 @@ impl Handler for SshHandler {
                     .iter()
                     .map(|s| (s.clone(), port))
                     .collect();
-                (user_id, tunnels)
+                (display_name, tunnels)
             };
 
             if !tunnels.is_empty() {
-                let message = terminal_ui::create_reconnect_box(&user_id, &tunnels);
+                let message = terminal_ui::create_reconnect_box(&display_name, &tunnels);
                 if let Err(e) = session.data(channel, message.into_bytes().into()) {
                     warn!("Failed to send reconnect message in shell_request: {:?}", e);
                 } else {
