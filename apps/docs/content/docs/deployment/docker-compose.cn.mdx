@@ -274,5 +274,5 @@ docker compose down
 nc -zv your-domain.com 2222
 
 # 测试隧道连接
-ssh -N -R 80:localhost:3000 -p 2222 user@your-domain.com
+ssh -R 8000:localhost:8000 -p 2222 user@your-domain.com
 ```

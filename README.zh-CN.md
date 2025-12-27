@@ -23,7 +23,7 @@ docker compose up -d --build
 5. 创建隧道：
 
 ```bash
-ssh -N -R 80:localhost:3000 -p 2222 test@localhost
+ssh -R 8000:localhost:8000 -p 2222 test@localhost
 ```
 
 6. 访问隧道（子域名可在日志或控制台查看）：

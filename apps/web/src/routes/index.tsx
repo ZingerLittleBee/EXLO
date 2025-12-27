@@ -9,8 +9,8 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { type DashboardMetrics, getDashboardMetrics, getRecentTunnels } from '@/functions/dashboard'
-import { type ActiveTunnel, kickTunnel } from '@/functions/tunnels'
 import { getUser } from '@/functions/get-user'
+import { type ActiveTunnel, kickTunnel } from '@/functions/tunnels'
 
 export const Route = createFileRoute('/')({
   component: HomeLayout,
@@ -156,7 +156,7 @@ function DashboardOverview() {
   }
 
   const copyCommand = () => {
-    const cmd = `ssh -N -R 80:localhost:3000 -p ${sshPort} ${sshHost}`
+    const cmd = `ssh -R 8000:localhost:8000 -p ${sshPort} ${sshHost}`
     navigator.clipboard.writeText(cmd)
     toast.success('Command copied to clipboard')
   }
@@ -250,7 +250,7 @@ function DashboardOverview() {
           <CardContent className="space-y-4">
             <div className="flex items-center gap-2">
               <code className="flex-1 rounded-md bg-muted px-3 py-2 font-mono text-sm">
-                ssh -N -R 80:localhost:PORT -p {sshPort} {sshHost}
+                ssh -R 8000:localhost:8000 -p {sshPort} {sshHost}
               </code>
               <Button onClick={copyCommand} size="icon" variant="outline">
                 <Copy className="h-4 w-4" />

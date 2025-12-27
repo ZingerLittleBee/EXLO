@@ -50,7 +50,7 @@ async fn handle_http_request(
                 .collect();
 
             let body = if tunnel_list.is_empty() {
-                "No tunnels registered.\n\nConnect with: ssh -N -R 80:localhost:PORT -p 2222 user@server".to_string()
+                "No tunnels registered.\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 user@server".to_string()
             } else {
                 format!(
                     "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}",

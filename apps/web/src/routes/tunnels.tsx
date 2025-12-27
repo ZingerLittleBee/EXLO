@@ -197,7 +197,7 @@ function TunnelsDashboard() {
               <p className="mt-1 text-sm">
                 Connect with:{' '}
                 <code className="rounded bg-muted px-2 py-1 text-xs">
-                  ssh -N -R 80:localhost:PORT -p 2222 user@server
+                  ssh -R 8000:localhost:8000 -p 2222 user@server
                 </code>
               </p>
             </div>
