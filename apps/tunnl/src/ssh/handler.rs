@@ -68,10 +68,10 @@ impl SshHandler {
     }
 
     async fn send_reconnect_message(&self, port: u32) {
-        let (user_id, tunnels) = {
+        let (display_name, tunnels) = {
             let state = self.shared_state.lock().await;
-            let user_id = match &state.verification_status {
-                VerificationStatus::Verified { user_id } => user_id.clone(),
+            let display_name = match &state.verification_status {
+                VerificationStatus::Verified { display_name, .. } => display_name.clone(),
                 _ => "unknown".to_string(),
             };
             let tunnels: Vec<(String, u32)> = state
@@ -79,14 +79,14 @@ impl SshHandler {
                 .iter()
                 .map(|s| (s.clone(), port))
                 .collect();
-            (user_id, tunnels)
+            (display_name, tunnels)
         };
 
         if tunnels.is_empty() {
             return;
         }
 
-        let message = terminal_ui::create_reconnect_box(&user_id, &tunnels);
+        let message = terminal_ui::create_reconnect_box(&display_name, &tunnels);
 
         info!(
             "send_reconnect_message: session_handle={}, session_channel_id={:?}",
@@ -155,10 +155,10 @@ impl SshHandler {
     }
 
     async fn start_device_flow(&mut self) -> Result<String, String> {
-        // Check rate limiting
+        // Check rate limiting atomically
         if let Some(peer) = self.peer_addr {
             let ip = peer.ip();
-            if self.state.is_device_flow_rate_limited(ip).await {
+            if self.state.check_and_record_device_flow(ip).await {
                 let reason = "Rate limited: too many Device Flow requests. Please wait before trying again.".to_string();
                 warn!("Device Flow rate limited for IP: {}", ip);
                 {
@@ -169,24 +169,23 @@ impl SshHandler {
                 }
                 return Err(reason);
             }
-            self.state.record_device_flow_request(ip).await;
         }
 
         let code = generate_activation_code();
         let session_id = self.session_id.clone();
         let client = self.device_flow_client.clone();
 
-        info!("Starting Device Flow with code: {}", code);
+        debug!("Starting Device Flow with code: {}", code);
 
         match client.register_code(&code, &session_id).await {
             Ok(()) => {
                 let activation_url = client.get_activation_url(&code);
 
-                info!(
+                debug!(
                     "Device Flow started!\n\
-                     Code: {}\n\
+                     Code: [REDACTED]\n\
                      URL: {}",
-                    code, activation_url
+                    activation_url
                 );
 
                 {
@@ -292,9 +291,11 @@ impl Handler for SshHandler {
                 "Public key already verified for user '{}', subdomain={:?}, skipping Device Flow",
                 verified_key.user_id, verified_key.last_subdomain
             );
+            let display_name = verified_key.get_display_name();
             let mut state = self.shared_state.lock().await;
             state.verification_status = VerificationStatus::Verified {
                 user_id: verified_key.user_id,
+                display_name,
             };
             state.last_subdomain = verified_key.last_subdomain;
         }
@@ -323,8 +324,10 @@ impl Handler for SshHandler {
             if !self.is_verified().await {
                 warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification (development mode)");
                 let mut state = self.shared_state.lock().await;
+                let dev_user = self.username.clone().unwrap_or_else(|| "dev".to_string());
                 state.verification_status = VerificationStatus::Verified {
-                    user_id: self.username.clone().unwrap_or_else(|| "dev".to_string()),
+                    user_id: dev_user.clone(),
+                    display_name: dev_user,
                 };
             }
             return self.do_create_tunnel(address, *port).await;
@@ -356,9 +359,8 @@ impl Handler for SshHandler {
         let status = self.get_verification_status().await;
         if matches!(status, VerificationStatus::NotStarted) {
             match self.start_device_flow().await {
-                Ok(code) => {
-                    let url = self.device_flow_client.get_activation_url(&code);
-                    info!("Device Flow started - Code: {}, URL: {}", code, url);
+                Ok(_code) => {
+                    debug!("Device Flow started for pending tunnel");
                 }
                 Err(reason) => {
                     warn!("Device Flow failed: {}", reason);
@@ -422,7 +424,7 @@ impl Handler for SshHandler {
         let status = self.get_verification_status().await;
 
         match status {
-            VerificationStatus::Verified { ref user_id } => {
+            VerificationStatus::Verified { ref display_name, .. } => {
                 let tunnels: Vec<(String, u32)> = {
                     let state = self.shared_state.lock().await;
                     let port = state.pending_tunnels.first().map(|t| t.port).unwrap_or(0);
@@ -440,7 +442,7 @@ impl Handler for SshHandler {
                 };
 
                 if !tunnels.is_empty() {
-                    let message = terminal_ui::create_reconnect_box(user_id, &tunnels);
+                    let message = terminal_ui::create_reconnect_box(display_name, &tunnels);
                     if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
                         warn!("Failed to send reconnect message: {:?}", e);
                     }
@@ -450,7 +452,7 @@ impl Handler for SshHandler {
                 match self.start_device_flow().await {
                     Ok(code) => {
                         let url = self.device_flow_client.get_activation_url(&code);
-                        info!("Device Flow started - Code: {}, URL: {}", code, url);
+                        debug!("Device Flow started - URL: {}", url);
 
                         let message = terminal_ui::create_activation_box(&code, &url);
                         if let Err(e) = session.data(channel_id, message.into_bytes().into()) {
@@ -572,10 +574,10 @@ impl Handler for SshHandler {
         };
 
         if let Some(port) = pending_port {
-            let (user_id, tunnels) = {
+            let (display_name, tunnels) = {
                 let state = self.shared_state.lock().await;
-                let user_id = match &state.verification_status {
-                    VerificationStatus::Verified { user_id } => user_id.clone(),
+                let display_name = match &state.verification_status {
+                    VerificationStatus::Verified { display_name, .. } => display_name.clone(),
                     _ => "unknown".to_string(),
                 };
                 let tunnels: Vec<(String, u32)> = state
@@ -583,11 +585,11 @@ impl Handler for SshHandler {
                     .iter()
                     .map(|s| (s.clone(), port))
                     .collect();
-                (user_id, tunnels)
+                (display_name, tunnels)
             };
 
             if !tunnels.is_empty() {
-                let message = terminal_ui::create_reconnect_box(&user_id, &tunnels);
+                let message = terminal_ui::create_reconnect_box(&display_name, &tunnels);
                 if let Err(e) = session.data(channel, message.into_bytes().into()) {
                     warn!("Failed to send reconnect message in shell_request: {:?}", e);
                 } else {
@@ -613,6 +615,11 @@ impl Handler for SshHandler {
 
 impl Drop for SshHandler {
     fn drop(&mut self) {
+        // Cancel the polling task if it's still running
+        if let Some(cancel) = self.poll_cancel.take() {
+            let _ = cancel.send(());
+        }
+        
         // When the handler is dropped (connection closed), clean up tunnels
         let state = self.state.clone();
         let shared_state = self.shared_state.clone();

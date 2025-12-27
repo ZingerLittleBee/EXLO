@@ -54,15 +54,18 @@ pub struct TunnelInfo {
 #[derive(Debug, Clone)]
 pub struct VerifiedKey {
     pub user_id: String,
+    /// User's display name (nickname)
+    pub display_name: Option<String>,
     pub verified_at: SystemTime,
     /// Last used subdomain for this key (to preserve on reconnect)
     pub last_subdomain: Option<String>,
 }
 
 impl VerifiedKey {
-    pub fn new(user_id: String) -> Self {
+    pub fn new(user_id: String, display_name: Option<String>) -> Self {
         Self {
             user_id,
+            display_name,
             verified_at: SystemTime::now(),
             last_subdomain: None,
         }
@@ -73,6 +76,13 @@ impl VerifiedKey {
             .duration_since(self.verified_at)
             .map(|elapsed| elapsed > VERIFIED_KEY_TTL)
             .unwrap_or(true)
+    }
+
+    /// Get display name (falls back to truncated user_id if not set)
+    pub fn get_display_name(&self) -> String {
+        self.display_name
+            .clone()
+            .unwrap_or_else(|| crate::device::truncate_user_id(&self.user_id))
     }
 }
 
@@ -153,6 +163,26 @@ impl AppState {
     }
 
     /// Check if an IP is rate-limited for Device Flow requests
+    /// and record the request atomically to prevent race conditions.
+    /// Returns true if rate-limited (request should be rejected).
+    pub async fn check_and_record_device_flow(&self, ip: IpAddr) -> bool {
+        let mut limits = self.rate_limits.write().await;
+        
+        if let Some(entry) = limits.get_mut(&ip) {
+            if entry.is_rate_limited() {
+                return true;
+            }
+            entry.record_attempt();
+            false
+        } else {
+            // First request from this IP - not rate limited, but record it
+            limits.insert(ip, RateLimitEntry::new());
+            false
+        }
+    }
+
+    /// Check if an IP is rate-limited for Device Flow requests (read-only check)
+    #[deprecated(note = "Use check_and_record_device_flow for atomic operation")]
     pub async fn is_device_flow_rate_limited(&self, ip: IpAddr) -> bool {
         let limits = self.rate_limits.read().await;
         if let Some(entry) = limits.get(&ip) {
@@ -163,6 +193,7 @@ impl AppState {
     }
 
     /// Record a Device Flow request from an IP
+    #[deprecated(note = "Use check_and_record_device_flow for atomic operation")]
     pub async fn record_device_flow_request(&self, ip: IpAddr) {
         let mut limits = self.rate_limits.write().await;
         if let Some(entry) = limits.get_mut(&ip) {
@@ -211,13 +242,19 @@ impl AppState {
     }
 
     /// Save a verified public key fingerprint
-    pub async fn save_verified_key(&self, fingerprint: &str, user_id: &str, subdomain: Option<&str>) {
+    pub async fn save_verified_key(
+        &self,
+        fingerprint: &str,
+        user_id: &str,
+        display_name: Option<&str>,
+        subdomain: Option<&str>,
+    ) {
         let mut keys = self.verified_keys.write().await;
         info!(
-            "Saving verified key: fingerprint={}, user_id={}, subdomain={:?}",
-            fingerprint, user_id, subdomain
+            "Saving verified key: fingerprint={}, user_id={}, display_name={:?}, subdomain={:?}",
+            fingerprint, user_id, display_name, subdomain
         );
-        let mut key = VerifiedKey::new(user_id.to_string());
+        let mut key = VerifiedKey::new(user_id.to_string(), display_name.map(|s| s.to_string()));
         key.last_subdomain = subdomain.map(|s| s.to_string());
         keys.insert(fingerprint.to_string(), key);
     }
@@ -286,11 +323,11 @@ mod tests {
         AppState::new()
     }
 
-    #[test]
-    fn test_verified_key_expiration() {
-        let key = VerifiedKey::new("user123".to_string());
-        assert!(!key.is_expired());
-    }
+     #[test]
+     fn test_verified_key_expiration() {
+         let key = VerifiedKey::new("user123".to_string(), None);
+         assert!(!key.is_expired());
+     }
 
     #[test]
     fn test_rate_limit_entry_new() {
@@ -336,12 +373,13 @@ mod tests {
         let fingerprint = "SHA256:abc123";
         let user_id = "user1";
 
-        state.save_verified_key(fingerprint, user_id, Some("test-subdomain")).await;
+        state.save_verified_key(fingerprint, user_id, Some("User One"), Some("test-subdomain")).await;
 
         let key = state.get_verified_key(fingerprint).await;
         assert!(key.is_some());
         let key = key.unwrap();
         assert_eq!(key.user_id, user_id);
+        assert_eq!(key.display_name, Some("User One".to_string()));
         assert_eq!(key.last_subdomain, Some("test-subdomain".to_string()));
     }
 
@@ -357,7 +395,7 @@ mod tests {
         let state = create_test_state();
         let fingerprint = "SHA256:xyz789";
 
-        state.save_verified_key(fingerprint, "user", None).await;
+        state.save_verified_key(fingerprint, "user", None, None).await;
         state.update_verified_key_subdomain(fingerprint, "new-subdomain").await;
 
         let key = state.get_verified_key(fingerprint).await.unwrap();

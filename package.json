@@ -1,5 +1,6 @@
 {
   "name": "exlo",
+  "description": "Expose localhost to the Internet securely. No downloads, no setup. Open-source & self-hosted.",
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",

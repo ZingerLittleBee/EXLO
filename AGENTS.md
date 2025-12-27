@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A self-hosted SSH reverse tunnel service (ngrok/tunnl.gg alternative). Uses a **Sidecar architecture** with two main components communicating via internal API.
+A self-hosted SSH reverse tunnel service. Uses a **Sidecar architecture** with two main components communicating via internal API.
 
 ## Architecture
 
@@ -133,7 +133,7 @@ PROXY_URL=http://localhost:8080
 
 ## Development Flow
 
-1. User connects via `ssh -R 80:localhost:PORT -p 2222 user@host`
+1. User connects via `ssh -R 8000:localhost:8000 -p 2222 user@host`
 2. Rust server generates activation code, shows in terminal
 3. User visits `/activate` in browser, enters code
 4. On verification, tunnel is registered with user association

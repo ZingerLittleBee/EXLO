@@ -57,7 +57,7 @@ pub async fn create_tunnel(
     let tunnel_username = {
         let state = shared_state.lock().await;
         match &state.verification_status {
-            VerificationStatus::Verified { user_id } => user_id.clone(),
+            VerificationStatus::Verified { user_id, .. } => user_id.clone(),
             _ => username.unwrap_or("anonymous").to_string(),
         }
     };

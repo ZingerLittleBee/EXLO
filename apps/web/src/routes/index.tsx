@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { type DashboardMetrics, getDashboardMetrics, getRecentTunnels } from '@/functions/dashboard'
 import { getUser } from '@/functions/get-user'
@@ -279,10 +280,7 @@ function DashboardOverview() {
         </CardHeader>
         <CardContent>
           {tunnels.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              <Cable className="mx-auto mb-2 h-8 w-8 opacity-50" />
-              <p>No active tunnels</p>
-            </div>
+            <EmptyState icon={Cable} title="No active tunnels" />
           ) : (
             <Table>
               <TableHeader>
