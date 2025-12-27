@@ -21,10 +21,10 @@ A high-performance SSH reverse tunnel server similar to ngrok/Cloudflare Tunnel,
 └──────────│──────────────────────────────│───────────────────┘
            │                              │
            ▼                              ▼
-      curl client              ssh -N -R 80:localhost:3000
+      curl client              ssh -R 8000:localhost:8000 -p 2222 user@localhost
                                           │
                                           ▼
-                                 User's localhost:3000
+                                 User's localhost:8000
 ```
 
 ## Usage
@@ -37,7 +37,7 @@ RUST_LOG=info cargo run
 python3 -m http.server 3000
 
 # Terminal 3: Create SSH tunnel
-ssh -o StrictHostKeyChecking=no -N -R 80:localhost:3000 -p 2222 test@localhost
+ssh -o StrictHostKeyChecking=no -R 8000:localhost:8000 -p 2222 test@localhost
 
 # Terminal 4: Access via HTTP (use subdomain from server logs)
 curl -H "Host: tunnel-xxx.localhost" http://localhost:8080/

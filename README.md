@@ -23,7 +23,7 @@ docker compose up -d --build
 5. Create a tunnel:
 
 ```bash
-ssh -N -R 80:localhost:3000 -p 2222 test@localhost
+ssh -R 8000:localhost:8000 -p 2222 test@localhost
 ```
 
 6. Visit your tunnel (subdomain is shown in logs or dashboard):

@@ -1,16 +1,26 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { getUser } from '@/functions/get-user'
 import { type ActiveTunnel, getTunnels, kickTunnel } from '@/functions/tunnels'
 
-export const Route = createFileRoute('/dashboard/tunnels')({
-  component: TunnelsDashboard,
-  loader: async () => {
-    // Auth is handled by parent /dashboard route
+export const Route = createFileRoute('/tunnels')({
+  component: TunnelsLayout,
+  beforeLoad: async () => {
+    const session = await getUser()
+    return { session }
+  },
+  loader: async ({ context }) => {
+    if (!context.session) {
+      throw redirect({
+        to: '/login',
+        search: {}
+      })
+    }
     const data = await getTunnels()
     const proxyUrl = process.env.PROXY_URL || 'http://localhost:8080'
     return { initialTunnels: data.tunnels, proxyUrl }
@@ -46,6 +56,36 @@ function getTunnelUrl(subdomain: string, proxyUrl: string): string {
   } catch {
     return `http://${subdomain}.localhost:8080`
   }
+}
+
+function TunnelsLayout() {
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <aside className="w-64 border-r bg-card p-4">
+        <nav className="space-y-2">
+          <Link
+            activeOptions={{ exact: true }}
+            className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
+            to="/"
+          >
+            Overview
+          </Link>
+          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/tunnels">
+            Active Tunnels
+          </Link>
+          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/users">
+            User Management
+          </Link>
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-auto p-8">
+        <TunnelsDashboard />
+      </main>
+    </div>
+  )
 }
 
 function TunnelsDashboard() {
@@ -122,6 +162,7 @@ function TunnelsDashboard() {
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
+                  <title>Loading</title>
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path
                     className="opacity-75"
@@ -144,6 +185,7 @@ function TunnelsDashboard() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
+                <title>No tunnels</title>
                 <path
                   d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"
                   strokeLinecap="round"
@@ -155,7 +197,7 @@ function TunnelsDashboard() {
               <p className="mt-1 text-sm">
                 Connect with:{' '}
                 <code className="rounded bg-muted px-2 py-1 text-xs">
-                  ssh -N -R 80:localhost:PORT -p 2222 user@server
+                  ssh -R 8000:localhost:8000 -p 2222 user@server
                 </code>
               </p>
             </div>
@@ -201,14 +243,14 @@ function TunnelsDashboard() {
                       {tunnel.user_id ? (
                         <span className="rounded bg-muted px-2 py-1 font-mono text-xs">{tunnel.user_id}</span>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-xs">{tunnel.client_ip}</span>
                     </TableCell>
                     <TableCell>
-                      <span className="tabular-nums">{mounted ? formatDuration(tunnel.connected_at) : '—'}</span>
+                      <span className="tabular-nums">{mounted ? formatDuration(tunnel.connected_at) : '-'}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -224,6 +266,7 @@ function TunnelsDashboard() {
                             viewBox="0 0 24 24"
                             xmlns="http://www.w3.org/2000/svg"
                           >
+                            <title>Loading</title>
                             <circle
                               className="opacity-25"
                               cx="12"

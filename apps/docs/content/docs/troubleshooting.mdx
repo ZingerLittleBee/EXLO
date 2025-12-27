@@ -23,7 +23,7 @@ icon: BadgeAlert
 ssh-keygen -R "[tunnl.example.com]:2222"
 
 # Reconnect
-ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
 ```
 
 ### Connection Timeout
@@ -81,7 +81,7 @@ Permission denied (publickey).
 # Disconnect and reconnect
 # Press Enter then type ~.
 # Reconnect to get a new verification code
-ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
 ```
 
 ### Cannot Access Authentication Page
@@ -139,7 +139,7 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
    ```bash
    # Check if SSH connection is alive
    # Reconnect
-   ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+   ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
    ```
 
 3. **HTTP Proxy service error**

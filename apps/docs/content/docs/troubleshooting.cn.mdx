@@ -23,7 +23,7 @@ icon: BadgeAlert
 ssh-keygen -R "[tunnl.example.com]:2222"
 
 # 重新连接
-ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+ssh -N -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
 ```
 
 ### 连接超时
@@ -81,7 +81,7 @@ Permission denied (publickey).
 # 断开当前连接，重新建立
 # 按 Enter 然后输入 ~.
 # 重新连接获取新验证码
-ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+ssh -N -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
 ```
 
 ### 无法访问认证页面
@@ -139,7 +139,7 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
    ```bash
    # 检查 SSH 连接是否存活
    # 重新建立连接
-   ssh -N -R 80:localhost:3000 -p 2222 user@tunnl.example.com
+   ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
    ```
 
 3. **HTTP Proxy 服务异常**

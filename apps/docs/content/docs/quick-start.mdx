@@ -43,12 +43,12 @@ http://your.domain/setup
 ### 1. Create SSH Tunnel
 
 ```bash
-ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
+ssh -R 8000:localhost:8000 -p 2222 user@your.domain
 ```
 
 Parameter explanation:
 - `-N`: Don't execute remote commands
-- `-R 80:localhost:3000`: Forward remote port 80 to local port 3000
+- `-R 8000:localhost:8000`: Forward local port 8000
 - `-p 2222`: SSH server port
 
 ### 2. Complete Device Flow Authentication

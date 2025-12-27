@@ -43,12 +43,12 @@ http://your.domain/setup
 ### 1. 创建 SSH 隧道
 
 ```bash
-ssh -N -R 80:localhost:3000 -p 2222 user@your.domain
+ssh -R 8000:localhost:8000 -p 2222 user@your.domain
 ```
 
 参数说明：
 - `-N`: 不执行远程命令
-- `-R 80:localhost:3000`: 将远程 80 端口转发到本地 3000 端口
+- `-R 8000:localhost:8000`: 转发本地 8000 端口
 - `-p 2222`: SSH 服务端口
 
 ### 2. 完成 Device Flow 认证
