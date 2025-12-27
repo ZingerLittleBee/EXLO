@@ -45,11 +45,11 @@ function UsersLayout() {
           >
             Overview
           </Link>
-          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/users">
-            User Management
-          </Link>
           <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/tunnels">
             Active Tunnels
+          </Link>
+          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/users">
+            User Management
           </Link>
         </nav>
       </aside>
@@ -114,77 +114,90 @@ function UsersPage() {
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8">
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-3xl">User Management</h1>
-          <p className="text-muted-foreground">Manage users and send invitations</p>
-        </div>
-
-        <Dialog onOpenChange={setIsDialogOpen} open={isDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Invite User</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite a New User</DialogTitle>
-              <DialogDescription>Send an invitation link to allow someone to create an account.</DialogDescription>
-            </DialogHeader>
-
-            {generatedLink ? (
-              <div className="space-y-4">
-                <div className="rounded-lg bg-muted p-4">
-                  <Label className="font-medium text-sm">Invitation Link</Label>
-                  <div className="mt-2 flex gap-2">
-                    <Input className="font-mono text-xs" readOnly value={generatedLink} />
-                    <Button onClick={handleCopyLink} size="sm" variant="outline">
-                      Copy
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-muted-foreground text-sm">
-                  This link will expire in 7 days. Share it securely with the invited user.
-                </p>
-                <DialogFooter>
-                  <Button onClick={handleCloseDialog}>Done</Button>
-                </DialogFooter>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      id="email"
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="user@example.com"
-                      type="email"
-                      value={email}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button onClick={handleCloseDialog} variant="outline">
-                    Cancel
-                  </Button>
-                  <Button disabled={isCreating} onClick={handleCreateInvitation}>
-                    {isCreating ? 'Creating...' : 'Create Invitation'}
-                  </Button>
-                </DialogFooter>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
-
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Pending Invitations</CardTitle>
-          <CardDescription>Users who have been invited but haven't yet created their account.</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>Manage users and send invitations</CardDescription>
+            </div>
+            <Dialog onOpenChange={setIsDialogOpen} open={isDialogOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">Invite User</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Invite a New User</DialogTitle>
+                  <DialogDescription>Send an invitation link to allow someone to create an account.</DialogDescription>
+                </DialogHeader>
+
+                {generatedLink ? (
+                  <div className="space-y-4">
+                    <div className="rounded-lg bg-muted p-4">
+                      <Label className="font-medium text-sm">Invitation Link</Label>
+                      <div className="mt-2 flex gap-2">
+                        <Input className="font-mono text-xs" readOnly value={generatedLink} />
+                        <Button onClick={handleCopyLink} size="sm" variant="outline">
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground text-sm">
+                      This link will expire in 7 days. Share it securely with the invited user.
+                    </p>
+                    <DialogFooter>
+                      <Button onClick={handleCloseDialog}>Done</Button>
+                    </DialogFooter>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input
+                          id="email"
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="user@example.com"
+                          type="email"
+                          value={email}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={handleCloseDialog} variant="outline">
+                        Cancel
+                      </Button>
+                      <Button disabled={isCreating} onClick={handleCreateInvitation}>
+                        {isCreating ? 'Creating...' : 'Create Invitation'}
+                      </Button>
+                    </DialogFooter>
+                  </>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           {loaderData.invitations.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground">No pending invitations</p>
+            <div className="py-12 text-center text-muted-foreground">
+              <svg
+                className="mx-auto mb-4 h-12 w-12 text-muted-foreground/50"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <title>No invitations</title>
+                <path
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                />
+              </svg>
+              <p className="font-medium text-lg">No pending invitations</p>
+              <p className="mt-1 text-sm">Click "Invite User" to send an invitation</p>
+            </div>
           ) : (
             <div className="divide-y">
               {loaderData.invitations.map((invitation) => (
@@ -208,6 +221,10 @@ function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      <div className="mt-4 text-center text-muted-foreground text-sm">
+        {loaderData.invitations.length} pending invitation{loaderData.invitations.length !== 1 ? 's' : ''}
+      </div>
     </div>
   )
 }

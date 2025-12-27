@@ -71,11 +71,11 @@ function TunnelsLayout() {
           >
             Overview
           </Link>
-          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/users">
-            User Management
-          </Link>
           <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/tunnels">
             Active Tunnels
+          </Link>
+          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/users">
+            User Management
           </Link>
         </nav>
       </aside>
