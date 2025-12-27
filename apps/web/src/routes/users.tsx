@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, redirect, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -17,20 +17,50 @@ import { Label } from '@/components/ui/label'
 import { getUser } from '@/functions/get-user'
 import { createInvitation, deleteInvitation, listInvitations } from '@/functions/invitation'
 
-export const Route = createFileRoute('/dashboard/users')({
-  component: UsersPage,
+export const Route = createFileRoute('/users')({
+  component: UsersLayout,
   beforeLoad: async () => {
     const session = await getUser()
-    if (!session) {
-      throw redirect({ to: '/login', search: {} })
-    }
     return { session }
   },
-  loader: async () => {
+  loader: async ({ context }) => {
+    if (!context.session) {
+      throw redirect({ to: '/login', search: {} })
+    }
     const invitations = await listInvitations()
     return { invitations }
   }
 })
+
+function UsersLayout() {
+  return (
+    <div className="flex h-full">
+      {/* Sidebar */}
+      <aside className="w-64 border-r bg-card p-4">
+        <nav className="space-y-2">
+          <Link
+            activeOptions={{ exact: true }}
+            className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent"
+            to="/"
+          >
+            Overview
+          </Link>
+          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/users">
+            User Management
+          </Link>
+          <Link className="block rounded-md px-3 py-2 text-sm hover:bg-accent [&.active]:bg-accent" to="/tunnels">
+            Active Tunnels
+          </Link>
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-auto p-8">
+        <UsersPage />
+      </main>
+    </div>
+  )
+}
 
 function UsersPage() {
   const loaderData = Route.useLoaderData()

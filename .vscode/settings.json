@@ -34,5 +34,8 @@
     "source.organizeImports": "never"
   },
   "biome.enabled": true,
-  "biome.lsp.bin": "./node_modules/@biomejs/biome/bin/biome"
+  "biome.lsp.bin": "./node_modules/@biomejs/biome/bin/biome",
+  "rust-analyzer.linkedProjects": [
+    "apps/tunnl/Cargo.toml"
+  ]
 }
