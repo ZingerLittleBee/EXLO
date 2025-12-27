@@ -110,17 +110,19 @@ pub async fn create_tunnel(
             
             // Save to verified_key for persistence across sessions
             if let Some(fingerprint) = public_key_fingerprint {
-                let display_name = {
+                let (user_id, display_name) = {
                     let state = shared_state.lock().await;
                     match &state.verification_status {
-                        VerificationStatus::Verified { display_name, .. } => Some(display_name.clone()),
-                        _ => None,
+                        VerificationStatus::Verified { user_id, display_name } => {
+                            (user_id.clone(), Some(display_name.clone()))
+                        }
+                        _ => (username.unwrap_or("anonymous").to_string(), None),
                     }
                 };
                 app_state
                     .save_verified_key(
                         fingerprint,
-                        username.unwrap_or("anonymous"),
+                        &user_id,
                         display_name.as_deref(),
                         port,
                         &subdomain,
