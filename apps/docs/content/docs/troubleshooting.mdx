@@ -64,6 +64,27 @@ Permission denied (publickey).
 - Make sure to complete browser authentication as prompted
 - Authentication expires after 5 minutes, reconnect if timed out
 
+### Port Mismatch Issue
+
+**Important**: Due to SSH protocol limitations, the server **cannot** determine your actual local port. When the remote and local ports don't match, the connection will **NOT** close immediately, but the tunnel will not work correctly.
+
+**Symptom**: Tunnel connects successfully, but requests cannot be properly routed to the local service.
+
+**Cause**: Remote port and local port don't match in the `-R` parameter. The server can only see the remote port and has no way to know the actual local port.
+
+**Solution**: **Always** ensure the remote and local ports are identical:
+
+```bash
+# ❌ Wrong - mismatched ports (connection won't close, but tunnel won't work)
+ssh -R 8080:localhost:8000 -p 2222 user@your.domain
+
+# ✅ Correct - matched ports
+ssh -R 8000:localhost:8000 -p 2222 user@your.domain
+```
+
+> [!IMPORTANT]
+> Both ports must be the same for the tunnel to work properly. Always keep the remote port in the `-R` parameter matching your local service port.
+
 ---
 
 ## Device Flow Authentication Issues
