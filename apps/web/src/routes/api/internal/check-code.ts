@@ -1,15 +1,14 @@
 import { db, eq } from '@exlo/db'
 import { activationCodes, user } from '@exlo/db/schema/index'
 import { createFileRoute } from '@tanstack/react-router'
-
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET || 'dev-secret'
+import { env } from '@/lib/env'
 
 export const Route = createFileRoute('/api/internal/check-code')({
   server: {
     handlers: {
       GET: async ({ request }) => {
         const secret = request.headers.get('X-Internal-Secret')
-        if (secret !== INTERNAL_SECRET) {
+        if (secret !== env.INTERNAL_API_SECRET) {
           return new Response(JSON.stringify({ error: 'Unauthorized' }), {
             status: 401,
             headers: { 'Content-Type': 'application/json' }

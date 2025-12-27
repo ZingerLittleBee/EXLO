@@ -9,6 +9,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { getUser } from '@/functions/get-user'
 import { type ActiveTunnel, getTunnels, kickTunnel } from '@/functions/tunnels'
+import { env } from '@/lib/env'
 
 export const Route = createFileRoute('/tunnels')({
   component: TunnelsLayout,
@@ -24,8 +25,7 @@ export const Route = createFileRoute('/tunnels')({
       })
     }
     const data = await getTunnels()
-    const proxyUrl = process.env.PROXY_URL || 'http://localhost:8080'
-    return { initialTunnels: data.tunnels, proxyUrl }
+    return { initialTunnels: data.tunnels, proxyUrl: env.PROXY_URL }
   }
 })
 

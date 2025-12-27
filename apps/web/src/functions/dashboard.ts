@@ -1,6 +1,7 @@
 import { count, db } from '@exlo/db'
 import { user } from '@exlo/db/schema/auth'
 import { createServerFn } from '@tanstack/react-start'
+import { env } from '@/lib/env'
 import { authMiddleware } from '@/middleware/auth'
 
 export type DashboardMetrics = {
@@ -14,13 +15,11 @@ export type TunnelHistoryPoint = {
   tunnels: number
 }
 
-const MANAGEMENT_API_URL = process.env.TUNNL_MANAGEMENT_API_URL || 'http://127.0.0.1:9090'
-
 export const getDashboardMetrics = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async (): Promise<DashboardMetrics> => {
     try {
-      const tunnelResponse = await fetch(`${MANAGEMENT_API_URL}/tunnels`, {
+      const tunnelResponse = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
@@ -60,7 +59,7 @@ export const getRecentTunnels = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => {
     try {
-      const response = await fetch(`${MANAGEMENT_API_URL}/tunnels`, {
+      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
