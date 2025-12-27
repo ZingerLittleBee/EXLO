@@ -1,75 +1,97 @@
 //! Centralized configuration management for the tunnel server.
 //!
-//! This module provides environment variable configuration with production validation.
+//! All configuration must be provided via environment variables.
+//! Missing required variables will cause a panic at startup.
 
-use log::warn;
+use std::sync::OnceLock;
 
-/// Get the PROXY_URL from environment or default
-pub fn get_proxy_url() -> String {
-    std::env::var("PROXY_URL").unwrap_or_else(|_| "http://localhost:8080".to_string())
+// ============================================================================
+// Environment variable names
+// ============================================================================
+
+mod env {
+    pub const PROXY_URL: &str = "PROXY_URL";
+    pub const API_BASE_URL: &str = "API_BASE_URL";
+    pub const INTERNAL_API_SECRET: &str = "INTERNAL_API_SECRET";
 }
 
-/// Construct a full tunnel URL from subdomain and proxy URL
+/// Minimum length for INTERNAL_API_SECRET
+const MIN_SECRET_LENGTH: usize = 32;
+
+// ============================================================================
+// Global configuration (loaded once at startup)
+// ============================================================================
+
+static CONFIG: OnceLock<Config> = OnceLock::new();
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub proxy_url: String,
+    pub api_base_url: String,
+    pub internal_api_secret: String,
+}
+
+impl Config {
+    fn load() -> Self {
+        let proxy_url = std::env::var(env::PROXY_URL)
+            .unwrap_or_else(|_| panic!("{} environment variable is required", env::PROXY_URL));
+
+        let api_base_url = std::env::var(env::API_BASE_URL)
+            .unwrap_or_else(|_| panic!("{} environment variable is required", env::API_BASE_URL));
+
+        let internal_api_secret = std::env::var(env::INTERNAL_API_SECRET).unwrap_or_else(|_| {
+            panic!(
+                "{} environment variable is required",
+                env::INTERNAL_API_SECRET
+            )
+        });
+
+        let config = Self {
+            proxy_url,
+            api_base_url,
+            internal_api_secret,
+        };
+
+        config.validate();
+        config
+    }
+
+    fn validate(&self) {
+        if self.internal_api_secret.len() < MIN_SECRET_LENGTH {
+            panic!(
+                "{} must be at least {} characters",
+                env::INTERNAL_API_SECRET, MIN_SECRET_LENGTH
+            );
+        }
+    }
+}
+
+// ============================================================================
+// Public API
+// ============================================================================
+
+/// Initialize configuration. Must be called once at startup.
+/// Panics if required environment variables are missing.
+pub fn init() {
+    CONFIG.get_or_init(Config::load);
+}
+
+/// Get the global configuration. Panics if not initialized.
+pub fn get() -> &'static Config {
+    CONFIG.get().expect("Config not initialized. Call config::init() first.")
+}
+
+/// Construct a full tunnel URL from subdomain
 pub fn get_tunnel_url(subdomain: &str) -> String {
-    let proxy_url = get_proxy_url();
-    if let Some(stripped) = proxy_url.strip_prefix("http://") {
-        let host = stripped.split('/').next().unwrap_or(stripped);
-        format!("http://{}.{}", subdomain, host)
-    } else if let Some(stripped) = proxy_url.strip_prefix("https://") {
-        let host = stripped.split('/').next().unwrap_or(stripped);
-        format!("https://{}.{}", subdomain, host)
+    let proxy_url = &get().proxy_url;
+
+    let (scheme, host) = if let Some(stripped) = proxy_url.strip_prefix("https://") {
+        ("https", stripped.split('/').next().unwrap_or(stripped))
+    } else if let Some(stripped) = proxy_url.strip_prefix("http://") {
+        ("http", stripped.split('/').next().unwrap_or(stripped))
     } else {
-        format!("http://{}.{}", subdomain, proxy_url)
-    }
-}
+        ("http", proxy_url.as_str())
+    };
 
-/// Check if running in development mode
-pub fn is_development() -> bool {
-    match std::env::var("NODE_ENV").as_deref() {
-        Ok("production") => false,
-        Ok("prod") => false,
-        _ => {
-            // Also check RUST_ENV for Rust-native configuration
-            match std::env::var("RUST_ENV").as_deref() {
-                Ok("production") => false,
-                Ok("prod") => false,
-                _ => true,
-            }
-        }
-    }
-}
-
-/// Validate critical configuration at startup
-pub fn validate_config() -> Result<(), String> {
-    let is_dev = is_development();
-
-    // Check INTERNAL_API_SECRET
-    let internal_secret = std::env::var("INTERNAL_API_SECRET").ok();
-    match internal_secret.as_deref() {
-        None if !is_dev => {
-            return Err("INTERNAL_API_SECRET must be set in production".to_string());
-        }
-        Some("dev-secret") if !is_dev => {
-            return Err("INTERNAL_API_SECRET cannot be 'dev-secret' in production".to_string());
-        }
-        Some(secret) if secret.len() < 32 && !is_dev => {
-            return Err("INTERNAL_API_SECRET must be at least 32 characters in production".to_string());
-        }
-        None => {
-            warn!("INTERNAL_API_SECRET not set, using default 'dev-secret' (development only)");
-        }
-        _ => {}
-    }
-
-    // Check API_BASE_URL
-    if std::env::var("API_BASE_URL").is_err() && !is_dev {
-        warn!("API_BASE_URL not set in production, using default 'http://localhost:3000'");
-    }
-
-    // Check TUNNL_SKIP_AUTH in production
-    if std::env::var("TUNNL_SKIP_AUTH").is_ok() && !is_dev {
-        return Err("TUNNL_SKIP_AUTH cannot be set in production".to_string());
-    }
-
-    Ok(())
+    format!("{}://{}.{}", scheme, subdomain, host)
 }

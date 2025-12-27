@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "setup": "cp $CONDUCTOR_ROOT_PATH/.env . && cp $CONDUCTOR_ROOT_PATH/apps/web/.env ./apps/web/ && bun i",
+    "setup": "cp $CONDUCTOR_ROOT_PATH/.env . && bun i",
     "run": ""
   }
 }

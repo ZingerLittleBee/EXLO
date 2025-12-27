@@ -7,7 +7,6 @@ use russh::server::{Auth, Handler, Msg, Session};
 use russh::{Channel, ChannelId, Disconnect};
 use russh_keys::HashAlg;
 
-use crate::config::is_development;
 use crate::error::TunnelError;
 use crate::terminal_ui;
 
@@ -94,21 +93,6 @@ impl Handler for SshHandler {
              Status: {:?}",
             address, port, self.username, status
         );
-
-        // Skip auth completely if TUNNL_SKIP_AUTH is set (development only)
-        if std::env::var("TUNNL_SKIP_AUTH").is_ok() && is_development() {
-            if !self.is_verified().await {
-                warn!("TUNNL_SKIP_AUTH is set - bypassing Device Flow verification (development mode)");
-                let mut state = self.shared_state.lock().await;
-                let dev_user = self.username.clone().unwrap_or_else(|| "dev".to_string());
-                state.verification_status = VerificationStatus::Verified {
-                    user_id: dev_user.clone(),
-                    display_name: dev_user,
-                };
-            }
-            let result = self.do_create_tunnel(address, *port).await?;
-            return Ok(result.success);
-        }
 
         // If already verified (reconnection or new port), create tunnel immediately
         if self.is_verified().await {

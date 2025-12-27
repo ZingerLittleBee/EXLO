@@ -19,7 +19,7 @@ use log::info;
 use russh::server::Server;
 
 use tunnl::{
-    load_or_generate_server_key, run_http_proxy, run_management_api, validate_config, AppState,
+    init_config, load_or_generate_server_key, run_http_proxy, run_management_api, AppState,
     DeviceFlowClient, DeviceFlowConfig, TunnelServer,
 };
 
@@ -32,12 +32,9 @@ async fn main() -> anyhow::Result<()> {
 
     info!("🚀 Starting SSH Reverse Tunnel Server with Device Flow...");
 
-    // Validate configuration at startup
-    if let Err(e) = validate_config() {
-        log::error!("Configuration error: {}", e);
-        std::process::exit(1);
-    }
-    info!("✓ Configuration validated");
+    // Initialize configuration (panics if required env vars are missing)
+    init_config();
+    info!("✓ Configuration loaded");
 
     // Initialize shared state
     let state = Arc::new(AppState::new());

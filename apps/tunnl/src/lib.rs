@@ -12,7 +12,7 @@ pub mod ssh;
 pub mod state;
 pub mod terminal_ui;
 
-pub use config::{get_proxy_url, get_tunnel_url, is_development, validate_config};
+pub use config::{get, get_tunnel_url, init as init_config, Config};
 pub use device::{generate_activation_code, truncate_user_id, DeviceFlowClient, DeviceFlowConfig, VerifiedUser};
 pub use error::TunnelError;
 pub use key::load_or_generate_server_key;
