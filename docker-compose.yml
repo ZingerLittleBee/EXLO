@@ -72,8 +72,8 @@ services:
     container_name: exlo-web
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: https://${DOMAIN}
+      AUTH_SECRET: ${AUTH_SECRET}
+      HOMEPAGE_URL: https://${DOMAIN}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       NODE_ENV: production
     expose:

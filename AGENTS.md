@@ -129,8 +129,8 @@ docker compose up -d --build
 ```bash
 # Required
 DATABASE_URL=postgresql://...
-BETTER_AUTH_SECRET=<min-32-chars>
-BETTER_AUTH_URL=http://localhost:3000
+AUTH_SECRET=<min-32-chars>
+HOMEPAGE_URL=http://localhost:3000
 
 # Optional
 INTERNAL_API_SECRET=<for-rust-web-communication>

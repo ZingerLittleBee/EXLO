@@ -14,7 +14,7 @@
 cp .env.docker.example .env
 ```
 
-2. 编辑 `.env`，设置强密码与密钥（尤其是 `POSTGRES_PASSWORD` 和 `BETTER_AUTH_SECRET`）。
+2. 编辑 `.env`，设置强密码与密钥（尤其是 `POSTGRES_PASSWORD` 和 `AUTH_SECRET`）。
 3. 构建并启动所有服务：
 
 ```bash
@@ -58,8 +58,8 @@ cp apps/web/.env.example apps/web/.env
 
 ```
 DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo
-BETTER_AUTH_SECRET=your-auth-secret-min-32-chars
-BETTER_AUTH_URL=http://localhost:3000
+AUTH_SECRET=your-auth-secret-min-32-chars
+HOMEPAGE_URL=http://localhost:3000
 ```
 
 4. 应用数据库结构：

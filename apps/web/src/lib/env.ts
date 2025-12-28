@@ -4,8 +4,8 @@ import { z } from 'zod'
 export const env = createEnv({
   server: {
     DATABASE_URL: z.url(),
-    BETTER_AUTH_SECRET: z.string().min(32),
-    BETTER_AUTH_URL: z.url(),
+    AUTH_SECRET: z.string().min(32),
+    HOMEPAGE_URL: z.url(),
     INTERNAL_API_SECRET: z.string(),
     PROXY_URL: z.url(),
     TUNNL_MANAGEMENT_API_URL: z.url(),

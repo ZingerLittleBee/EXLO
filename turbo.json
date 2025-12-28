@@ -2,11 +2,13 @@
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
   "globalEnv": [
-    "BETTER_AUTH_URL",
+    "HOMEPAGE_URL",
     "DATABASE_URL",
     "INTERNAL_API_SECRET",
     "NODE_ENV",
-    "PROXY_URL"
+    "PROXY_URL",
+    "AUTH_SECRET",
+    "HOMEPAGE_URL"
   ],
   "tasks": {
     "build": {

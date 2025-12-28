@@ -14,7 +14,7 @@ A self-hosted SSH reverse tunnel service, designed for privacy and control.
 cp .env.docker.example .env
 ```
 
-2. Edit `.env` and set strong secrets (especially `POSTGRES_PASSWORD` and `BETTER_AUTH_SECRET`).
+2. Edit `.env` and set strong secrets (especially `POSTGRES_PASSWORD` and `AUTH_SECRET`).
 3. Build and start all services:
 
 ```bash
@@ -58,8 +58,8 @@ Set in `apps/web/.env` (example for the local DB):
 
 ```
 DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo
-BETTER_AUTH_SECRET=your-auth-secret-min-32-chars
-BETTER_AUTH_URL=http://localhost:3000
+AUTH_SECRET=your-auth-secret-min-32-chars
+HOMEPAGE_URL=http://localhost:3000
 ```
 
 4. Apply schema:
