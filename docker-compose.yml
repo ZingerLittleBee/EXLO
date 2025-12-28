@@ -101,6 +101,7 @@ services:
       RUST_LOG: ${RUST_LOG:-info}
       RUST_ENV: production
       API_BASE_URL: http://web:3000
+      HOMEPAGE_URL: ${HOMEPAGE_URL}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       TUNNEL_DOMAIN: ${TUNNEL_DOMAIN}
     ports:
