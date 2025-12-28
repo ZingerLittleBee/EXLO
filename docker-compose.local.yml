@@ -1,39 +1,24 @@
-# Local development configuration (HTTP only, no SSL)
-# Usage: docker compose -f docker-compose.local.yml up -d
+# Local development configuration (HTTP only, no SSL, no Traefik)
+# Access via localhost:port directly
+# Usage: docker compose -f docker-compose.local.yml up -d --build
 
 name: exlo-local
 
-services:
-  traefik:
-    image: traefik:v3.2
-    container_name: exlo-traefik
-    command:
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entryPoints.web.address=:80"
-      - "--api.insecure=true"
-    ports:
-      - "80:80"
-      - "8081:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
-    networks:
-      - exlo-network
+x-db: &db
+  DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 
+services:
   postgres:
     image: postgres:16-alpine
     container_name: exlo-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-exlo}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - exlo_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-exlo}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -47,7 +32,7 @@ services:
       dockerfile: docker/Dockerfile.migrate
     container_name: exlo-migrate
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
+      <<: *db
     depends_on:
       postgres:
         condition: service_healthy
@@ -61,17 +46,16 @@ services:
       dockerfile: docker/Dockerfile.web
     container_name: exlo-web
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-local-dev-secret-min-32-chars!!}
-      BETTER_AUTH_URL: http://${DOMAIN:-exlo.localhost}
-      NODE_ENV: development
-    expose:
-      - "3000"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.web.rule=Host(`${DOMAIN:-exlo.localhost}`)"
-      - "traefik.http.routers.web.entrypoints=web"
-      - "traefik.http.services.web.loadbalancer.server.port=3000"
+      <<: *db
+      AUTH_SECRET: ${AUTH_SECRET}
+      HOMEPAGE_URL: http://localhost:3000
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      TUNNL_MANAGEMENT_API_URL: ${TUNNL_MANAGEMENT_API_URL}
+      SSH_HOST: ${SSH_HOST}
+      SSH_PORT: ${SSH_PORT:-2222}
+      TUNNEL_URL: ${TUNNEL_URL}
+    ports:
+      - "3000:3000"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -85,19 +69,16 @@ services:
       dockerfile: docker/Dockerfile.tunnl
     container_name: exlo-tunnl
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-exlo}
-      RUST_LOG: ${RUST_LOG:-debug}
-      MANAGEMENT_API_URL: http://tunnl:9090
+      <<: *db
+      API_BASE_URL: http://web:3000
+      HOMEPAGE_URL: ${HOMEPAGE_URL}
+      INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
+      TUNNEL_URL: ${TUNNEL_URL}
     ports:
-      - "${SSH_PORT:-2222}:2222"
+      - "${SSH_PORT:-2222}:${SSH_PORT:-2222}"
+      - "8080:8080"
     expose:
-      - "8080"
       - "9090"
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.tunnl.rule=HostRegexp(`^.+\\.${TUNNEL_DOMAIN:-tunnel.localhost}$$`)"
-      - "traefik.http.routers.tunnl.entrypoints=web"
-      - "traefik.http.services.tunnl.loadbalancer.server.port=8080"
     depends_on:
       migrate:
         condition: service_completed_successfully

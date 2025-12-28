@@ -80,7 +80,7 @@ src/
 | `MGMT_PORT` | `9090` | Management API port |
 | `API_BASE_URL` | `http://localhost:3000` | Web app URL for Device Flow |
 | `INTERNAL_API_SECRET` | `dev-secret` | Secret for internal API auth |
-| `TUNNEL_DOMAIN` | `localhost` | Domain for tunnel subdomains |
+| `TUNNEL_URL` | `localhost` | Domain for tunnel subdomains |
 | `RUST_LOG` | `info` | Log level |
 
 ## Usage

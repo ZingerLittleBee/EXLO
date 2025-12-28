@@ -12,7 +12,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone)]
 pub struct DeviceFlowConfig {
     /// Base URL of the web API (e.g., "http://localhost:3000")
+    /// Base URL of the internal web API (e.g., "http://web:3000" in Docker)
     pub api_base_url: String,
+    /// Public homepage URL for user-facing links (e.g., "https://example.com")
+    pub homepage_url: String,
     /// Internal API secret for authentication
     pub internal_secret: String,
     /// How long codes are valid (in seconds)
@@ -27,9 +30,11 @@ impl Default for DeviceFlowConfig {
     fn default() -> Self {
         Self {
             api_base_url: std::env::var("API_BASE_URL")
-                .unwrap_or_else(|_| "http://localhost:3000".to_string()),
+                .expect("API_BASE_URL environment variable is required"),
+            homepage_url: std::env::var("HOMEPAGE_URL")
+                .expect("HOMEPAGE_URL environment variable is required"),
             internal_secret: std::env::var("INTERNAL_API_SECRET")
-                .unwrap_or_else(|_| "dev-secret".to_string()),
+                .expect("INTERNAL_API_SECRET environment variable is required"),
             code_expiry_secs: std::env::var("CODE_EXPIRY_SECS")
                 .ok()
                 .and_then(|v| v.parse().ok())
@@ -243,7 +248,7 @@ impl DeviceFlowClient {
 
     /// Get the activation URL for display to the user
     pub fn get_activation_url(&self, code: &str) -> String {
-        format!("{}/activate?code={}", self.config.api_base_url, code)
+        format!("{}/activate?code={}", self.config.homepage_url, code)
     }
 
     /// Register a tunnel with the web server (for tracking purposes)

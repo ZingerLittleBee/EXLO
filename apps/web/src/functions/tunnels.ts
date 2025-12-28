@@ -88,7 +88,7 @@ export const getAllStoredTunnels = createServerFn({ method: 'GET' })
 // Server function to get public config (avoids exposing server env to client)
 export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async () => {
   return {
-    proxyUrl: env.PROXY_URL,
+    tunnelUrl: env.TUNNEL_URL,
     sshHost: env.SSH_HOST,
     sshPort: env.SSH_PORT
   }
