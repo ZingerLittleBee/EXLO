@@ -78,16 +78,11 @@ pub async fn create_tunnel(
         }
     };
 
-    // Check if the subdomain is already taken (for non-reconnect cases)
-    // If username was specified (not "."), disconnect on conflict
-    if !is_reconnect && app_state.is_subdomain_taken(&subdomain).await {
-        warn!("Subdomain '{}' is already taken, will disconnect", subdomain);
-        return Ok(CreateTunnelResult {
-            success: false,
-            conflicting_subdomain: Some(subdomain),
-            is_explicit_conflict: true,
-        });
-    }
+    // Determine if this is an explicit subdomain request (user specified via username)
+    let is_explicit = {
+        let state = shared_state.lock().await;
+        state.requested_subdomain.is_some()
+    };
 
     // If reconnecting, remove the old tunnel first (stale from previous session)
     if is_reconnect {
@@ -174,11 +169,11 @@ pub async fn create_tunnel(
             })
         }
         Err(TunnelError::SubdomainTaken(s)) => {
-            warn!("Subdomain {} already taken", s);
+            warn!("Subdomain {} already taken (explicit={})", s, is_explicit);
             Ok(CreateTunnelResult {
                 success: false,
                 conflicting_subdomain: Some(s),
-                is_explicit_conflict: false,
+                is_explicit_conflict: is_explicit,
             })
         }
         Err(e) => {
