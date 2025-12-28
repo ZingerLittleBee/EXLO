@@ -277,6 +277,43 @@ mod tests {
     }
 
     #[test]
+    fn test_extract_subdomain_with_base_domain_containing_port() {
+        // When TUNNEL_DOMAIN is "localhost:8080", the base_domain passed should be "localhost"
+        // This tests that the port stripping logic works correctly
+        
+        // Host with same port as TUNNEL_DOMAIN
+        assert_eq!(
+            extract_subdomain_with_base("myapp.localhost:8080", "localhost"),
+            Some("myapp".to_string())
+        );
+        
+        // Host with different port (should still work, we only care about domain)
+        assert_eq!(
+            extract_subdomain_with_base("myapp.localhost:9000", "localhost"),
+            Some("myapp".to_string())
+        );
+        
+        // Host without port
+        assert_eq!(
+            extract_subdomain_with_base("myapp.localhost", "localhost"),
+            Some("myapp".to_string())
+        );
+        
+        // Base domain itself (no subdomain)
+        assert_eq!(extract_subdomain_with_base("localhost:8080", "localhost"), None);
+        
+        // Test with multi-level domain like "tunnel.example.com"
+        assert_eq!(
+            extract_subdomain_with_base("myapp.tunnel.example.com:8080", "tunnel.example.com"),
+            Some("myapp".to_string())
+        );
+        assert_eq!(
+            extract_subdomain_with_base("tunnel.example.com:8080", "tunnel.example.com"),
+            None
+        );
+    }
+
+    #[test]
     fn test_extract_host_from_raw() {
         let request = b"GET / HTTP/1.1\r\nHost: tunnel-abc.localhost:8080\r\nUser-Agent: curl\r\n\r\n";
         assert_eq!(
