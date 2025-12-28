@@ -49,19 +49,31 @@ pub async fn create_tunnel(
     };
 
     // Priority: 
-    // 1. last_subdomains (reconnection)
-    // 2. requested_subdomain (from username, strict - disconnect on conflict)
-    // 3. generate new random subdomain (when username is ".")
+    // 1. requested_subdomain (from username, strict - disconnect on conflict)
+    //    - If username matches last_subdomain for this port, treat as reconnection
+    // 2. last_subdomains (reconnection for "." username within 30min TTL)
+    // 3. generate new random subdomain (when username is "." and no previous subdomain)
     let (subdomain, is_reconnect) = {
         let state = shared_state.lock().await;
-        if let Some(last) = state.last_subdomains.get(&port) {
-            info!("Reusing subdomain from previous session for port {}: {}", port, last);
+        if let Some(ref requested) = state.requested_subdomain {
+            // User explicitly specified a subdomain via username
+            // Check if it matches a previous subdomain (reconnection)
+            let is_reconnect = state.last_subdomains.get(&port).is_some_and(|last| last == requested);
+            if is_reconnect {
+                info!("Reconnecting with same subdomain for port {}: {}", port, requested);
+            } else {
+                info!("Using username as subdomain: {}", requested);
+            }
+            (requested.clone(), is_reconnect)
+        } else if let Some(last) = state.last_subdomains.get(&port) {
+            // User requested random (username "."), but has a previous subdomain within TTL
+            // Reuse the previous subdomain for reconnection
+            info!("Reconnecting with previous subdomain for port {} (username is '.'): {}", port, last);
             (last.clone(), true)
-        } else if let Some(ref requested) = state.requested_subdomain {
-            info!("Using username as subdomain: {}", requested);
-            (requested.clone(), false)
         } else {
+            // User requested random and no previous subdomain
             drop(state);
+            info!("Generating random subdomain (username is '.')");
             (generate_subdomain.await, false)
         }
     };
