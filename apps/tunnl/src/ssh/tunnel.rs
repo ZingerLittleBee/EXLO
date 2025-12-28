@@ -18,6 +18,10 @@ use super::types::{SharedHandlerState, VerificationStatus};
 pub struct CreateTunnelResult {
     /// Whether the tunnel was created successfully
     pub success: bool,
+    /// The subdomain that caused the conflict (for subdomain taken errors)
+    pub conflicting_subdomain: Option<String>,
+    /// Whether the conflict is from an explicit subdomain (should disconnect) or fallback (use random)
+    pub is_explicit_conflict: bool,
 }
 
 /// Create a tunnel after verification
@@ -36,21 +40,42 @@ pub async fn create_tunnel(
         Some(h) => h.clone(),
         None => {
             error!("No session handle available!");
-            return Ok(CreateTunnelResult { success: false });
+            return Ok(CreateTunnelResult {
+                success: false,
+                conflicting_subdomain: None,
+                is_explicit_conflict: false,
+            });
         }
     };
 
-    // Use last_subdomains if available for this port (reconnection), otherwise generate new one
+    // Priority: 
+    // 1. last_subdomains (reconnection)
+    // 2. requested_subdomain (from username, strict - disconnect on conflict)
+    // 3. generate new random subdomain (when username is ".")
     let (subdomain, is_reconnect) = {
         let state = shared_state.lock().await;
         if let Some(last) = state.last_subdomains.get(&port) {
             info!("Reusing subdomain from previous session for port {}: {}", port, last);
             (last.clone(), true)
+        } else if let Some(ref requested) = state.requested_subdomain {
+            info!("Using username as subdomain: {}", requested);
+            (requested.clone(), false)
         } else {
             drop(state);
             (generate_subdomain.await, false)
         }
     };
+
+    // Check if the subdomain is already taken (for non-reconnect cases)
+    // If username was specified (not "."), disconnect on conflict
+    if !is_reconnect && app_state.is_subdomain_taken(&subdomain).await {
+        warn!("Subdomain '{}' is already taken, will disconnect", subdomain);
+        return Ok(CreateTunnelResult {
+            success: false,
+            conflicting_subdomain: Some(subdomain),
+            is_explicit_conflict: true,
+        });
+    }
 
     // If reconnecting, remove the old tunnel first (stale from previous session)
     if is_reconnect {
@@ -130,11 +155,19 @@ pub async fn create_tunnel(
                     .await;
             }
             
-            Ok(CreateTunnelResult { success: true })
+            Ok(CreateTunnelResult {
+                success: true,
+                conflicting_subdomain: None,
+                is_explicit_conflict: false,
+            })
         }
         Err(TunnelError::SubdomainTaken(s)) => {
             warn!("Subdomain {} already taken", s);
-            Ok(CreateTunnelResult { success: false })
+            Ok(CreateTunnelResult {
+                success: false,
+                conflicting_subdomain: Some(s),
+                is_explicit_conflict: false,
+            })
         }
         Err(e) => {
             error!("Failed to register tunnel: {}", e);

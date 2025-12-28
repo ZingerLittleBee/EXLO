@@ -102,7 +102,7 @@ services:
       RUST_ENV: production
       API_BASE_URL: http://web:3000
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      PROXY_URL: https://${TUNNEL_DOMAIN}
+      TUNNEL_DOMAIN: ${TUNNEL_DOMAIN}
     ports:
       - "${SSH_PORT:-2222}:2222"
     expose:

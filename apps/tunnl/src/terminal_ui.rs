@@ -266,6 +266,45 @@ pub fn clear_esc_hint() -> String {
     "\x1B[2A\x1B[0J".to_string()
 }
 
+/// Create an error box for subdomain already taken
+pub fn create_subdomain_taken_error_box(subdomain: &str, port: u32) -> String {
+    let title = format!("{} SUBDOMAIN TAKEN", style("✗").red());
+
+    let error_line = format!(
+        "{} Subdomain '{}' is already in use",
+        style("✗").red(),
+        style(subdomain).yellow().bold()
+    );
+
+    let mut output = String::new();
+
+    // Clear entire screen and move cursor to top
+    output.push_str("\x1B[2J\x1B[H");
+    output.push_str("\r\n");
+
+    output.push_str(&top_border());
+    output.push_str(&centered_line(&title));
+    output.push_str(&middle_border());
+    output.push_str(&empty_line());
+    output.push_str(&content_line(&error_line));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Try a different subdomain:"));
+    let hint = format!(
+        "  {} ssh -R {}:localhost:{} {}@...",
+        style("$").dim(),
+        port,
+        port,
+        style("<your-subdomain>").cyan()
+    );
+    output.push_str(&content_line(&hint));
+    output.push_str(&empty_line());
+    output.push_str(&content_line("Connection will close in 3 seconds..."));
+    output.push_str(&bottom_border());
+    output.push_str("\r\n");
+
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

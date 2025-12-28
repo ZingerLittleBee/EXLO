@@ -209,12 +209,34 @@ async fn create_pending_tunnels(
     let mut created_tunnels = Vec::new();
 
     for pending in pending_tunnels {
+        // Priority: 1. requested_subdomain (user-specified), 2. generate new
         let subdomain = {
             let mut state = shared_state.lock().await;
-            state.subdomain_counter += 1;
-            let random_id = generate_secure_subdomain_id();
-            format!("tunnel-{}-{}", random_id, state.subdomain_counter)
+            if let Some(ref requested) = state.requested_subdomain {
+                requested.clone()
+            } else {
+                state.subdomain_counter += 1;
+                let random_id = generate_secure_subdomain_id();
+                format!("tunnel-{}-{}", random_id, state.subdomain_counter)
+            }
         };
+
+        // Check if subdomain is already taken
+        if app_state.is_subdomain_taken(&subdomain).await {
+            warn!("Subdomain '{}' is already taken by another user", subdomain);
+            if let Some(channel_id) = session_channel_id {
+                let error_msg = terminal_ui::create_subdomain_taken_error_box(&subdomain, pending.port);
+                let _ = handle.data(channel_id, error_msg.into_bytes().into()).await;
+            }
+
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+            let reason = format!("Subdomain '{}' is already in use", subdomain);
+            let _ = handle
+                .disconnect(Disconnect::ByApplication, reason, "en".to_string())
+                .await;
+            return created_tunnels;
+        }
 
         // Probe the local port before registering the tunnel
         let probe_result = handle

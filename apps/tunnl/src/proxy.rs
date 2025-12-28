@@ -10,17 +10,36 @@ use tokio::net::{TcpListener, TcpStream};
 use crate::config::{get as get_config, get_tunnel_url};
 use crate::state::AppState;
 
-/// Extract subdomain from Host header.
-/// Supports: "tunnel-xxx.localhost:8080" or "tunnel-xxx.example.com"
-fn extract_subdomain(host: &str) -> Option<String> {
-    let host_without_port = host.split(':').next()?;
-    let subdomain = host_without_port.split('.').next()?;
-
-    if subdomain.starts_with("tunnel-") {
-        Some(subdomain.to_string())
-    } else {
-        None
+/// Extract subdomain from Host header based on a given base domain.
+/// e.g., base_domain="localhost", host="test.localhost:8080" -> "test"
+/// e.g., base_domain="example.com", host="test.example.com" -> "test"
+fn extract_subdomain_with_base(host: &str, base_domain: &str) -> Option<String> {
+    // Host header might have port, remove it for comparison
+    let host_without_port = host.split(':').next().unwrap_or(host);
+    
+    // Check if host ends with ".base_domain" (e.g., "test.localhost" ends with ".localhost")
+    let suffix = format!(".{}", base_domain);
+    if host_without_port.ends_with(&suffix) {
+        // Extract subdomain (everything before the suffix)
+        let subdomain = &host_without_port[..host_without_port.len() - suffix.len()];
+        if !subdomain.is_empty() && !subdomain.contains('.') {
+            return Some(subdomain.to_string());
+        }
     }
+    
+    None
+}
+
+/// Extract subdomain from Host header based on TUNNEL_DOMAIN configuration.
+/// If TUNNEL_DOMAIN is "localhost:8080", then "test.localhost:8080" -> "test"
+/// If TUNNEL_DOMAIN is "example.com", then "test.example.com" -> "test"
+fn extract_subdomain(host: &str) -> Option<String> {
+    let tunnel_domain = &get_config().tunnel_domain;
+    
+    // Remove port from tunnel_domain for comparison (e.g., "localhost:8080" -> "localhost")
+    let base_domain = tunnel_domain.split(':').next().unwrap_or(tunnel_domain);
+    
+    extract_subdomain_with_base(host, base_domain)
 }
 
 /// Extract Host header value from raw HTTP request bytes.
@@ -61,11 +80,11 @@ fn error_response(status: u16, message: &str) -> Vec<u8> {
 
 /// Generate tunnel list response.
 fn tunnel_list_response() -> Vec<u8> {
-    let proxy_url = &get_config().proxy_url;
+    let tunnel_domain = &get_config().tunnel_domain;
 
     let body = format!(
-        "Tunnel Proxy Server\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 user@server",
-        proxy_url
+        "Tunnel Proxy Server\n\nUse: curl -H \"Host: SUBDOMAIN.{}\" <address>\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 <subdomain>@server",
+        tunnel_domain
     );
 
     error_response(400, &body)
@@ -104,19 +123,19 @@ async fn handle_connection(mut stream: TcpStream, state: Arc<AppState>) {
         None => {
             // No valid subdomain, show available tunnels
             let tunnels = state.list_tunnels().await;
-            let proxy_url = &get_config().proxy_url;
+            let tunnel_domain = &get_config().tunnel_domain;
             let tunnel_list: Vec<String> = tunnels
                 .iter()
                 .map(|t| format!("  - {}", get_tunnel_url(&t.subdomain)))
                 .collect();
 
             let body = if tunnel_list.is_empty() {
-                "No tunnels registered.\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 user@server".to_string()
+                "No tunnels registered.\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 <subdomain>@server".to_string()
             } else {
                 format!(
-                    "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.yourdomain\" {}",
+                    "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.{}\" <address>",
                     tunnel_list.join("\n"),
-                    proxy_url
+                    tunnel_domain
                 )
             };
 
@@ -213,17 +232,48 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_extract_subdomain() {
+    fn test_extract_subdomain_with_localhost() {
+        // With base_domain = "localhost"
         assert_eq!(
-            extract_subdomain("tunnel-abc123.localhost:8080"),
+            extract_subdomain_with_base("test.localhost:8080", "localhost"),
+            Some("test".to_string())
+        );
+        assert_eq!(
+            extract_subdomain_with_base("tunnel-abc123.localhost:8080", "localhost"),
             Some("tunnel-abc123".to_string())
         );
         assert_eq!(
-            extract_subdomain("tunnel-xyz.example.com"),
+            extract_subdomain_with_base("myapp.localhost", "localhost"),
+            Some("myapp".to_string())
+        );
+        // No subdomain
+        assert_eq!(extract_subdomain_with_base("localhost:8080", "localhost"), None);
+        assert_eq!(extract_subdomain_with_base("localhost", "localhost"), None);
+    }
+
+    #[test]
+    fn test_extract_subdomain_with_domain() {
+        // With base_domain = "example.com"
+        assert_eq!(
+            extract_subdomain_with_base("test.example.com", "example.com"),
+            Some("test".to_string())
+        );
+        assert_eq!(
+            extract_subdomain_with_base("tunnel-xyz.example.com:8080", "example.com"),
             Some("tunnel-xyz".to_string())
         );
-        assert_eq!(extract_subdomain("localhost:8080"), None);
-        assert_eq!(extract_subdomain("example.com"), None);
+        // No subdomain
+        assert_eq!(extract_subdomain_with_base("example.com", "example.com"), None);
+        assert_eq!(extract_subdomain_with_base("example.com:8080", "example.com"), None);
+        // Different domain should not match
+        assert_eq!(extract_subdomain_with_base("test.other.com", "example.com"), None);
+    }
+
+    #[test]
+    fn test_extract_subdomain_rejects_nested() {
+        // Should reject nested subdomains (e.g., "a.b.localhost")
+        assert_eq!(extract_subdomain_with_base("a.b.localhost", "localhost"), None);
+        assert_eq!(extract_subdomain_with_base("sub.test.example.com", "example.com"), None);
     }
 
     #[test]

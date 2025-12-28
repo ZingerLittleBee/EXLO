@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 // ============================================================================
 
 mod env {
-    pub const PROXY_URL: &str = "PROXY_URL";
+    pub const TUNNEL_DOMAIN: &str = "TUNNEL_DOMAIN";
     pub const API_BASE_URL: &str = "API_BASE_URL";
     pub const INTERNAL_API_SECRET: &str = "INTERNAL_API_SECRET";
 }
@@ -26,15 +26,16 @@ static CONFIG: OnceLock<Config> = OnceLock::new();
 
 #[derive(Debug, Clone)]
 pub struct Config {
-    pub proxy_url: String,
+    /// Base domain for tunnels (e.g., "tunnel.example.com" or "localhost:8080")
+    pub tunnel_domain: String,
     pub api_base_url: String,
     pub internal_api_secret: String,
 }
 
 impl Config {
     fn load() -> Self {
-        let proxy_url = std::env::var(env::PROXY_URL)
-            .unwrap_or_else(|_| panic!("{} environment variable is required", env::PROXY_URL));
+        let tunnel_domain = std::env::var(env::TUNNEL_DOMAIN)
+            .unwrap_or_else(|_| panic!("{} environment variable is required", env::TUNNEL_DOMAIN));
 
         let api_base_url = std::env::var(env::API_BASE_URL)
             .unwrap_or_else(|_| panic!("{} environment variable is required", env::API_BASE_URL));
@@ -47,7 +48,7 @@ impl Config {
         });
 
         let config = Self {
-            proxy_url,
+            tunnel_domain,
             api_base_url,
             internal_api_secret,
         };
@@ -81,17 +82,8 @@ pub fn get() -> &'static Config {
     CONFIG.get().expect("Config not initialized. Call config::init() first.")
 }
 
-/// Construct a full tunnel URL from subdomain
+/// Construct a tunnel address from subdomain (without protocol)
 pub fn get_tunnel_url(subdomain: &str) -> String {
-    let proxy_url = &get().proxy_url;
-
-    let (scheme, host) = if let Some(stripped) = proxy_url.strip_prefix("https://") {
-        ("https", stripped.split('/').next().unwrap_or(stripped))
-    } else if let Some(stripped) = proxy_url.strip_prefix("http://") {
-        ("http", stripped.split('/').next().unwrap_or(stripped))
-    } else {
-        ("http", proxy_url.as_str())
-    };
-
-    format!("{}://{}.{}", scheme, subdomain, host)
+    let config = get();
+    format!("{}.{}", subdomain, config.tunnel_domain)
 }

@@ -58,6 +58,17 @@ impl Handler for SshHandler {
         );
 
         self.username = Some(user.to_string());
+        
+        // Username is used as explicit subdomain (disconnect on conflict)
+        // "." means use random subdomain
+        if user != "." {
+            let mut state = self.shared_state.lock().await;
+            state.requested_subdomain = Some(user.to_string());
+            info!("Username set as explicit subdomain: {}", user);
+        } else {
+            info!("Username is '.', will use random subdomain");
+        }
+        
         let fingerprint_str = fingerprint.to_string();
         self.public_key_fingerprint = Some(fingerprint_str.clone());
 
@@ -82,7 +93,7 @@ impl Handler for SshHandler {
         &mut self,
         address: &str,
         port: &mut u32,
-        _session: &mut Session,
+        session: &mut Session,
     ) -> Result<bool, Self::Error> {
         let status = self.get_verification_status().await;
         info!(
@@ -99,6 +110,30 @@ impl Handler for SshHandler {
             let result = self.do_create_tunnel(address, *port).await?;
             if result.success {
                 self.send_tunnel_message(*port).await;
+            } else if let Some(ref conflicting) = result.conflicting_subdomain {
+                // Only disconnect if it's an explicit subdomain conflict
+                if result.is_explicit_conflict {
+                    let channel_id = self.session_channel_id;
+                    if let Some(channel) = channel_id {
+                        let error_msg = terminal_ui::create_subdomain_taken_error_box(conflicting, *port);
+                        let _ = session.data(channel, error_msg.into_bytes().into());
+                    }
+                    
+                    // Disconnect after a short delay
+                    let handle = self.session_handle.clone();
+                    tokio::spawn(async move {
+                        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                        if let Some(h) = handle {
+                            let _ = h.disconnect(
+                                Disconnect::ByApplication,
+                                "Subdomain already taken".to_string(),
+                                "en".to_string(),
+                            ).await;
+                        }
+                    });
+                    return Ok(false);
+                }
+                // For non-explicit conflicts, tunnel.rs already handled fallback to random
             }
             return Ok(result.success);
         }

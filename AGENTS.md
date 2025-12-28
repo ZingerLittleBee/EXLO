@@ -134,7 +134,7 @@ BETTER_AUTH_URL=http://localhost:3000
 
 # Optional
 INTERNAL_API_SECRET=<for-rust-web-communication>
-PROXY_URL=http://localhost:8080
+TUNNEL_DOMAIN=localhost:8080
 ```
 
 ## Development Flow
