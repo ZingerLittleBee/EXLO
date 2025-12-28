@@ -30,14 +30,14 @@ fn extract_subdomain_with_base(host: &str, base_domain: &str) -> Option<String> 
     None
 }
 
-/// Extract subdomain from Host header based on TUNNEL_DOMAIN configuration.
-/// If TUNNEL_DOMAIN is "localhost:8080", then "test.localhost:8080" -> "test"
-/// If TUNNEL_DOMAIN is "example.com", then "test.example.com" -> "test"
+/// Extract subdomain from Host header based on TUNNEL_URL configuration.
+/// If TUNNEL_URL is "localhost:8080", then "test.localhost:8080" -> "test"
+/// If TUNNEL_URL is "example.com", then "test.example.com" -> "test"
 fn extract_subdomain(host: &str) -> Option<String> {
-    let tunnel_domain = &get_config().tunnel_domain;
+    let tunnel_url = &get_config().tunnel_url;
     
-    // Remove port from tunnel_domain for comparison (e.g., "localhost:8080" -> "localhost")
-    let base_domain = tunnel_domain.split(':').next().unwrap_or(tunnel_domain);
+    // Remove port from tunnel_url for comparison (e.g., "localhost:8080" -> "localhost")
+    let base_domain = tunnel_url.split(':').next().unwrap_or(tunnel_url);
     
     extract_subdomain_with_base(host, base_domain)
 }
@@ -80,11 +80,11 @@ fn error_response(status: u16, message: &str) -> Vec<u8> {
 
 /// Generate tunnel list response.
 fn tunnel_list_response() -> Vec<u8> {
-    let tunnel_domain = &get_config().tunnel_domain;
+    let tunnel_url = &get_config().tunnel_url;
 
     let body = format!(
         "Tunnel Proxy Server\n\nUse: curl -H \"Host: SUBDOMAIN.{}\" <address>\n\nConnect with: ssh -R 8000:localhost:8000 -p 2222 <subdomain>@server",
-        tunnel_domain
+        tunnel_url
     );
 
     error_response(400, &body)
@@ -123,7 +123,7 @@ async fn handle_connection(mut stream: TcpStream, state: Arc<AppState>) {
         None => {
             // No valid subdomain, show available tunnels
             let tunnels = state.list_tunnels().await;
-            let tunnel_domain = &get_config().tunnel_domain;
+            let tunnel_url = &get_config().tunnel_url;
             let tunnel_list: Vec<String> = tunnels
                 .iter()
                 .map(|t| format!("  - {}", get_tunnel_url(&t.subdomain)))
@@ -135,7 +135,7 @@ async fn handle_connection(mut stream: TcpStream, state: Arc<AppState>) {
                 format!(
                     "Available tunnels:\n{}\n\nUse: curl -H \"Host: SUBDOMAIN.{}\" <address>",
                     tunnel_list.join("\n"),
-                    tunnel_domain
+                    tunnel_url
                 )
             };
 
@@ -278,10 +278,10 @@ mod tests {
 
     #[test]
     fn test_extract_subdomain_with_base_domain_containing_port() {
-        // When TUNNEL_DOMAIN is "localhost:8080", the base_domain passed should be "localhost"
+        // When TUNNEL_URL is "localhost:8080", the base_domain passed should be "localhost"
         // This tests that the port stripping logic works correctly
         
-        // Host with same port as TUNNEL_DOMAIN
+        // Host with same port as TUNNEL_URL
         assert_eq!(
             extract_subdomain_with_base("myapp.localhost:8080", "localhost"),
             Some("myapp".to_string())

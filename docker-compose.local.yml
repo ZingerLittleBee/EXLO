@@ -73,7 +73,7 @@ services:
       API_BASE_URL: http://web:3000
       HOMEPAGE_URL: ${HOMEPAGE_URL}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      TUNNEL_DOMAIN: ${TUNNEL_DOMAIN}
+      TUNNEL_URL: ${TUNNEL_URL}
     ports:
       - "${SSH_PORT:-2222}:${SSH_PORT:-2222}"
       - "8080:8080"

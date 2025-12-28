@@ -103,7 +103,7 @@ services:
       API_BASE_URL: http://web:3000
       HOMEPAGE_URL: ${HOMEPAGE_URL}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      TUNNEL_DOMAIN: ${TUNNEL_DOMAIN}
+      TUNNEL_URL: ${TUNNEL_URL}
     ports:
       - "${SSH_PORT:-2222}:2222"
     expose:
@@ -112,11 +112,11 @@ services:
     labels:
       - "traefik.enable=true"
       # Traefik v3 syntax for wildcard subdomain matching
-      - "traefik.http.routers.tunnl.rule=HostRegexp(`^.+\\.${TUNNEL_DOMAIN}$$`)"
+      - "traefik.http.routers.tunnl.rule=HostRegexp(`^.+\\.${TUNNEL_URL}$$`)"
       - "traefik.http.routers.tunnl.entrypoints=websecure"
       - "traefik.http.routers.tunnl.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.tunnl.tls.domains[0].main=${TUNNEL_DOMAIN}"
-      - "traefik.http.routers.tunnl.tls.domains[0].sans=*.${TUNNEL_DOMAIN}"
+      - "traefik.http.routers.tunnl.tls.domains[0].main=${TUNNEL_URL}"
+      - "traefik.http.routers.tunnl.tls.domains[0].sans=*.${TUNNEL_URL}"
       - "traefik.http.services.tunnl.loadbalancer.server.port=8080"
     depends_on:
       migrate:
