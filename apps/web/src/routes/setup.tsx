@@ -57,7 +57,7 @@ function SetupPage() {
           {
             onSuccess: () => {
               toast.success('Admin account created successfully! Welcome to your tunnel server.')
-              navigate({ to: '/dashboard' })
+              navigate({ to: '/' })
             },
             onError: (error) => {
               toast.error(`Account created but sign-in failed: ${error.error.message}`)

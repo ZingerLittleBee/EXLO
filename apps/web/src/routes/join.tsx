@@ -62,7 +62,7 @@ function JoinPage() {
           {
             onSuccess: () => {
               toast.success('Account created successfully! Welcome aboard.')
-              navigate({ to: '/dashboard' })
+              navigate({ to: '/' })
             },
             onError: (error) => {
               toast.error(`Account created but sign-in failed: ${error.error.message}`)

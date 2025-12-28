@@ -39,7 +39,7 @@ function LoginPage() {
             if (redirectTo) {
               navigate({ to: redirectTo })
             } else {
-              navigate({ to: '/dashboard' })
+              navigate({ to: '/' })
             }
           },
           onError: (error) => {
