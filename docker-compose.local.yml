@@ -53,7 +53,7 @@ services:
       PROXY_URL: ${PROXY_URL}
       TUNNL_MANAGEMENT_API_URL: ${TUNNL_MANAGEMENT_API_URL}
       SSH_HOST: ${SSH_HOST}
-      SSH_PORT: ${SSH_PORT}
+      SSH_PORT: ${SSH_PORT:-2222}
     ports:
       - "3000:3000"
     depends_on:
@@ -74,7 +74,7 @@ services:
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
       TUNNEL_DOMAIN: ${TUNNEL_DOMAIN}
     ports:
-      - "2222:2222"
+      - "${SSH_PORT:-2222}:${SSH_PORT:-2222}"
       - "8080:8080"
     expose:
       - "9090"
