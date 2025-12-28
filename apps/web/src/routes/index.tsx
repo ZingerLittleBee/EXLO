@@ -179,7 +179,7 @@ function DashboardOverview() {
       {/* Metrics Cards */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-medium text-sm">Active Tunnels</CardTitle>
             <Cable className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -190,7 +190,7 @@ function DashboardOverview() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-medium text-sm">Online Users</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -201,7 +201,7 @@ function DashboardOverview() {
         </Card>
 
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-medium text-sm">Total Users</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>

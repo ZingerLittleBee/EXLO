@@ -237,6 +237,16 @@ impl AppState {
         tunnels.get(subdomain).cloned()
     }
 
+    /// Check if a subdomain is already taken (only considers connected tunnels)
+    pub async fn is_subdomain_taken(&self, subdomain: &str) -> bool {
+        let tunnels = self.tunnels.read().await;
+        if let Some(tunnel) = tunnels.get(subdomain) {
+            tunnel.is_connected
+        } else {
+            false
+        }
+    }
+
     pub async fn list_tunnels(&self) -> Vec<TunnelInfo> {
         let tunnels = self.tunnels.read().await;
         tunnels.values().cloned().collect()

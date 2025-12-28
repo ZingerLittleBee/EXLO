@@ -29,6 +29,9 @@ pub struct SharedHandlerState {
     pub last_subdomains: std::collections::HashMap<u32, String>,
     /// Pending tunnel port (set when tunnel created before session channel opens)
     pub pending_tunnel_port: Option<u32>,
+    /// User-requested subdomain from SSH username (strict - disconnect on conflict)
+    /// None means use random subdomain (when username is ".")
+    pub requested_subdomain: Option<String>,
 }
 
 impl SharedHandlerState {
@@ -44,6 +47,7 @@ impl SharedHandlerState {
             last_esc_time: None,
             last_subdomains: std::collections::HashMap::new(),
             pending_tunnel_port: None,
+            requested_subdomain: None,
         }
     }
 }

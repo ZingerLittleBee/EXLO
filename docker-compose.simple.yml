@@ -70,7 +70,7 @@ services:
       RUST_LOG: ${RUST_LOG:-debug}
       RUST_ENV: ${RUST_ENV:-development}
       API_BASE_URL: ${HOMEPAGE_URL}
-      PROXY_URL: ${PROXY_URL}
+      TUNNEL_DOMAIN: ${TUNNEL_DOMAIN}
     ports:
       - "2222:2222"
       - "8080:8080"
