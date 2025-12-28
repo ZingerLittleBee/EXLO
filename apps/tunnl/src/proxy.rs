@@ -13,6 +13,8 @@ use crate::state::AppState;
 /// Extract subdomain from Host header based on a given base domain.
 /// e.g., base_domain="localhost", host="test.localhost:8080" -> "test"
 /// e.g., base_domain="example.com", host="test.example.com" -> "test"
+/// 
+/// Validates subdomain length (max 63 chars) and characters (alphanumeric + hyphen).
 fn extract_subdomain_with_base(host: &str, base_domain: &str) -> Option<String> {
     // Host header might have port, remove it for comparison
     let host_without_port = host.split(':').next().unwrap_or(host);
@@ -22,9 +24,32 @@ fn extract_subdomain_with_base(host: &str, base_domain: &str) -> Option<String> 
     if host_without_port.ends_with(&suffix) {
         // Extract subdomain (everything before the suffix)
         let subdomain = &host_without_port[..host_without_port.len() - suffix.len()];
-        if !subdomain.is_empty() && !subdomain.contains('.') {
-            return Some(subdomain.to_string());
+        
+        // Validate: not empty, no dots (single-level subdomain only)
+        if subdomain.is_empty() || subdomain.contains('.') {
+            return None;
         }
+        
+        // Validate length (DNS label limit is 63 characters)
+        if subdomain.len() > 63 {
+            warn!("Subdomain too long (max 63 chars): {} chars", subdomain.len());
+            return None;
+        }
+        
+        // Validate characters (alphanumeric and hyphens only, case-insensitive)
+        let subdomain_lower = subdomain.to_lowercase();
+        if !subdomain_lower.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            warn!("Subdomain contains invalid characters: {}", subdomain);
+            return None;
+        }
+        
+        // Cannot start or end with hyphen
+        if subdomain_lower.starts_with('-') || subdomain_lower.ends_with('-') {
+            warn!("Subdomain cannot start or end with hyphen: {}", subdomain);
+            return None;
+        }
+        
+        return Some(subdomain_lower);
     }
     
     None

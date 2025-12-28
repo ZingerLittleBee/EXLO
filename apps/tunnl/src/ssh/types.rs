@@ -3,6 +3,59 @@
 use russh::server::Handle;
 use russh::ChannelId;
 
+/// Maximum length for a subdomain (DNS label limit)
+pub const MAX_SUBDOMAIN_LENGTH: usize = 63;
+
+/// Minimum length for a subdomain
+pub const MIN_SUBDOMAIN_LENGTH: usize = 1;
+
+/// Subdomain validation result
+#[derive(Debug, Clone, PartialEq)]
+pub enum SubdomainValidation {
+    Valid,
+    TooLong,
+    TooShort,
+    InvalidCharacters,
+    StartsWithHyphen,
+    EndsWithHyphen,
+}
+
+/// Validate a subdomain string.
+/// 
+/// Rules:
+/// - Length: 1-63 characters (DNS label limit)
+/// - Characters: lowercase letters, digits, hyphens only
+/// - Cannot start or end with a hyphen
+pub fn validate_subdomain(subdomain: &str) -> SubdomainValidation {
+    if subdomain.len() > MAX_SUBDOMAIN_LENGTH {
+        return SubdomainValidation::TooLong;
+    }
+    
+    if subdomain.len() < MIN_SUBDOMAIN_LENGTH {
+        return SubdomainValidation::TooShort;
+    }
+    
+    if subdomain.starts_with('-') {
+        return SubdomainValidation::StartsWithHyphen;
+    }
+    
+    if subdomain.ends_with('-') {
+        return SubdomainValidation::EndsWithHyphen;
+    }
+    
+    // Only allow lowercase alphanumeric and hyphens
+    if !subdomain.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
+        return SubdomainValidation::InvalidCharacters;
+    }
+    
+    SubdomainValidation::Valid
+}
+
+/// Check if a subdomain is valid
+pub fn is_valid_subdomain(subdomain: &str) -> bool {
+    validate_subdomain(subdomain) == SubdomainValidation::Valid
+}
+
 /// A pending tunnel request waiting for verification
 #[derive(Debug, Clone)]
 pub struct PendingTunnel {
@@ -156,5 +209,56 @@ mod tests {
         let cloned = tunnel.clone();
         assert_eq!(tunnel.address, cloned.address);
         assert_eq!(tunnel.port, cloned.port);
+    }
+
+    // Subdomain validation tests
+    #[test]
+    fn test_validate_subdomain_valid() {
+        assert_eq!(validate_subdomain("myapp"), SubdomainValidation::Valid);
+        assert_eq!(validate_subdomain("my-app"), SubdomainValidation::Valid);
+        assert_eq!(validate_subdomain("app123"), SubdomainValidation::Valid);
+        assert_eq!(validate_subdomain("a"), SubdomainValidation::Valid);
+        assert_eq!(validate_subdomain("a1b2c3"), SubdomainValidation::Valid);
+    }
+
+    #[test]
+    fn test_validate_subdomain_too_long() {
+        let long_subdomain = "a".repeat(64);
+        assert_eq!(validate_subdomain(&long_subdomain), SubdomainValidation::TooLong);
+        
+        // 63 chars should be valid
+        let max_subdomain = "a".repeat(63);
+        assert_eq!(validate_subdomain(&max_subdomain), SubdomainValidation::Valid);
+    }
+
+    #[test]
+    fn test_validate_subdomain_too_short() {
+        assert_eq!(validate_subdomain(""), SubdomainValidation::TooShort);
+    }
+
+    #[test]
+    fn test_validate_subdomain_invalid_characters() {
+        assert_eq!(validate_subdomain("my_app"), SubdomainValidation::InvalidCharacters);
+        assert_eq!(validate_subdomain("my.app"), SubdomainValidation::InvalidCharacters);
+        assert_eq!(validate_subdomain("my@app"), SubdomainValidation::InvalidCharacters);
+        assert_eq!(validate_subdomain("MY-APP"), SubdomainValidation::InvalidCharacters); // uppercase not allowed
+        assert_eq!(validate_subdomain("app!"), SubdomainValidation::InvalidCharacters);
+    }
+
+    #[test]
+    fn test_validate_subdomain_hyphen_position() {
+        assert_eq!(validate_subdomain("-myapp"), SubdomainValidation::StartsWithHyphen);
+        assert_eq!(validate_subdomain("myapp-"), SubdomainValidation::EndsWithHyphen);
+        assert_eq!(validate_subdomain("-"), SubdomainValidation::StartsWithHyphen);
+    }
+
+    #[test]
+    fn test_is_valid_subdomain() {
+        assert!(is_valid_subdomain("myapp"));
+        assert!(is_valid_subdomain("my-app-123"));
+        assert!(!is_valid_subdomain(""));
+        assert!(!is_valid_subdomain("-app"));
+        assert!(!is_valid_subdomain("app-"));
+        assert!(!is_valid_subdomain("MY_APP"));
     }
 }

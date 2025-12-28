@@ -11,7 +11,7 @@ use crate::error::TunnelError;
 use crate::terminal_ui;
 
 use super::handler::SshHandler;
-use super::types::{PendingTunnel, VerificationStatus};
+use super::types::{PendingTunnel, VerificationStatus, validate_subdomain, SubdomainValidation};
 
 #[async_trait]
 impl Handler for SshHandler {
@@ -62,9 +62,31 @@ impl Handler for SshHandler {
         // Username is used as explicit subdomain (disconnect on conflict)
         // "." means use random subdomain
         if user != "." {
-            let mut state = self.shared_state.lock().await;
-            state.requested_subdomain = Some(user.to_string());
-            info!("Username set as explicit subdomain: {}", user);
+            // Validate the subdomain before accepting
+            let subdomain = user.to_lowercase();
+            match validate_subdomain(&subdomain) {
+                SubdomainValidation::Valid => {
+                    let mut state = self.shared_state.lock().await;
+                    state.requested_subdomain = Some(subdomain.clone());
+                    info!("Username set as explicit subdomain: {}", subdomain);
+                }
+                SubdomainValidation::TooLong => {
+                    warn!("Username '{}' is too long for subdomain (max 63 chars)", user);
+                    return Ok(Auth::Reject { proceed_with_methods: None });
+                }
+                SubdomainValidation::TooShort => {
+                    warn!("Username '{}' is too short for subdomain", user);
+                    return Ok(Auth::Reject { proceed_with_methods: None });
+                }
+                SubdomainValidation::InvalidCharacters => {
+                    warn!("Username '{}' contains invalid characters for subdomain", user);
+                    return Ok(Auth::Reject { proceed_with_methods: None });
+                }
+                SubdomainValidation::StartsWithHyphen | SubdomainValidation::EndsWithHyphen => {
+                    warn!("Username '{}' cannot start or end with hyphen", user);
+                    return Ok(Auth::Reject { proceed_with_methods: None });
+                }
+            }
         } else {
             info!("Username is '.', will use random subdomain");
         }
