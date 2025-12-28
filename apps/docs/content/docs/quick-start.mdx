@@ -43,13 +43,20 @@ http://your.domain/setup
 ### 1. Create SSH Tunnel
 
 ```bash
-ssh -R 8000:localhost:8000 -p 2222 user@your.domain
+# Random subdomain
+ssh -R 8000:localhost:8000 -p 2222 .@your.domain
+
+# Custom subdomain (e.g., myapp.your.domain)
+ssh -R 8000:localhost:8000 -p 2222 myapp@your.domain
 ```
 
 Parameter explanation:
-- `-N`: Don't execute remote commands
 - `-R 8000:localhost:8000`: Forward local port 8000
 - `-p 2222`: SSH server port
+- Username determines the subdomain:
+  - `.` = random subdomain (auto-generated)
+  - `myapp` = custom subdomain (`myapp.your.domain`)
+  - If not specified, SSH uses your system username (e.g., `ssh -R 8000:localhost:8000 -p 2222 your.domain` uses your local username as the subdomain)
 
 > [!IMPORTANT]
 > **Port Consistency Requirement**
@@ -100,9 +107,20 @@ EXLO supports automatic session recovery:
 
 - **Reconnect within 30 minutes**: No need to re-authenticate via Device Flow
 - **Same subdomain preserved**: Your tunnel URL remains unchanged after reconnection
+- **Works with both custom and random subdomains**: When using `.` (random), reconnecting within 30 minutes with the same SSH key and port will restore your previous subdomain
 
 > [!NOTE]
 > Reconnection is based on SSH public key fingerprint. If you switch devices or SSH keys, re-authentication is required.
+
+## Custom Subdomain Behavior
+
+| Scenario | Subdomain |
+|----------|-----------|
+| `ssh ... myapp@host` | Uses `myapp`, disconnects on conflict |
+| `ssh ... myapp@host` (reconnect with same key+port) | Restores `myapp` |
+| `ssh ... .@host` (first time) | Random generated |
+| `ssh ... .@host` (reconnect within 30 min) | **Restores previous subdomain** |
+| `ssh ... .@host` (after 30 min) | New random subdomain |
 
 ## Auto-Reconnect with autossh
 

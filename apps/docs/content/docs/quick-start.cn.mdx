@@ -43,13 +43,20 @@ http://your.domain/setup
 ### 1. 创建 SSH 隧道
 
 ```bash
-ssh -R 8000:localhost:8000 -p 2222 user@your.domain
+# 随机子域名
+ssh -R 8000:localhost:8000 -p 2222 .@your.domain
+
+# 自定义子域名（如 myapp.your.domain）
+ssh -R 8000:localhost:8000 -p 2222 myapp@your.domain
 ```
 
 参数说明：
-- `-N`: 不执行远程命令
 - `-R 8000:localhost:8000`: 转发本地 8000 端口
 - `-p 2222`: SSH 服务端口
+- 用户名决定子域名：
+  - `.` = 随机子域名（自动生成）
+  - `myapp` = 自定义子域名（`myapp.your.domain`）
+  - 如果不指定用户名，SSH 会使用你的系统用户名（例如 `ssh -R 8000:localhost:8000 -p 2222 your.domain` 会使用本地用户名作为子域名）
 
 > [!IMPORTANT]
 > **端口一致性要求**
@@ -100,9 +107,20 @@ EXLO 支持断线重连功能：
 
 - **30 分钟内重连**：无需重新进行 Device Flow 认证，直接恢复隧道
 - **保持相同子域名**：重连后使用与之前相同的子域名
+- **自定义和随机子域名均支持**：使用 `.`（随机）时，30 分钟内使用相同 SSH 密钥和端口重连将恢复之前的子域名
 
 > [!NOTE]
 > 重连识别基于 SSH 公钥指纹。如果更换设备或 SSH 密钥，需要重新认证。
+
+## 自定义子域名行为
+
+| 场景 | 子域名 |
+|------|--------|
+| `ssh ... myapp@host` | 使用 `myapp`，冲突时断开连接 |
+| `ssh ... myapp@host`（同一 key+port 重连） | 恢复 `myapp` |
+| `ssh ... .@host`（首次） | 随机生成 |
+| `ssh ... .@host`（30 分钟内重连） | **恢复之前的子域名** |
+| `ssh ... .@host`（超过 30 分钟） | 生成新的随机子域名 |
 
 ## 使用 autossh 自动重连
 
