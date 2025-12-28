@@ -6,9 +6,8 @@
     "DATABASE_URL",
     "INTERNAL_API_SECRET",
     "NODE_ENV",
-    "PROXY_URL",
-    "AUTH_SECRET",
-    "HOMEPAGE_URL"
+    "TUNNEL_URL",
+    "AUTH_SECRET"
   ],
   "tasks": {
     "build": {

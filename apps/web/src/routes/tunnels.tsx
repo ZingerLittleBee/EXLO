@@ -24,7 +24,7 @@ export const Route = createFileRoute('/tunnels')({
       })
     }
     const [data, config] = await Promise.all([getTunnels(), getPublicConfig()])
-    return { initialTunnels: data.tunnels, proxyUrl: config.proxyUrl }
+    return { initialTunnels: data.tunnels, tunnelUrl: config.tunnelUrl }
   }
 })
 
@@ -50,13 +50,8 @@ function formatDuration(connectedAt: string): string {
   return `${seconds}s`
 }
 
-function getTunnelUrl(subdomain: string, proxyUrl: string): string {
-  try {
-    const url = new URL(proxyUrl)
-    return `${url.protocol}//${subdomain}.${url.host}`
-  } catch {
-    return `http://${subdomain}.localhost:8080`
-  }
+function getTunnelUrl(subdomain: string, tunnelUrl: string): string {
+  return `http://${subdomain}.${tunnelUrl}`
 }
 
 function TunnelsLayout() {
@@ -90,7 +85,7 @@ function TunnelsLayout() {
 }
 
 function TunnelsDashboard() {
-  const { initialTunnels, proxyUrl } = Route.useLoaderData()
+  const { initialTunnels, tunnelUrl } = Route.useLoaderData()
   const router = useRouter()
   const [tunnels, setTunnels] = useState<ActiveTunnel[]>(initialTunnels)
   const [isLoading, setIsLoading] = useState(false)
@@ -224,7 +219,7 @@ function TunnelsDashboard() {
                     <TableCell className="font-medium">
                       <a
                         className="text-primary hover:underline"
-                        href={getTunnelUrl(tunnel.subdomain, proxyUrl)}
+                        href={getTunnelUrl(tunnel.subdomain, tunnelUrl)}
                         rel="noopener noreferrer"
                         target="_blank"
                       >

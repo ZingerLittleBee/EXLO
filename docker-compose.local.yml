@@ -50,10 +50,10 @@ services:
       AUTH_SECRET: ${AUTH_SECRET}
       HOMEPAGE_URL: http://localhost:3000
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      PROXY_URL: ${PROXY_URL}
       TUNNL_MANAGEMENT_API_URL: ${TUNNL_MANAGEMENT_API_URL}
       SSH_HOST: ${SSH_HOST}
       SSH_PORT: ${SSH_PORT:-2222}
+      TUNNEL_URL: ${TUNNEL_URL}
     ports:
       - "3000:3000"
     depends_on:

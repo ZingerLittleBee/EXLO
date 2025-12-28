@@ -34,7 +34,7 @@ export const Route = createFileRoute('/')({
     return {
       initialMetrics: metrics,
       initialTunnels: recentTunnels.tunnels,
-      proxyUrl: config.proxyUrl,
+      tunnelUrl: config.tunnelUrl,
       sshHost: config.sshHost,
       sshPort: config.sshPort
     }
@@ -70,13 +70,8 @@ function formatDuration(connectedAt: string): string {
   return `${seconds}s`
 }
 
-function getTunnelUrl(subdomain: string, proxyUrl: string): string {
-  try {
-    const url = new URL(proxyUrl)
-    return `${url.protocol}//${subdomain}.${url.host}`
-  } catch {
-    return `http://${subdomain}.localhost:8080`
-  }
+function getTunnelUrl(subdomain: string, tunnelUrl: string): string {
+  return `http://${subdomain}.${tunnelUrl}`
 }
 
 function HomeLayout() {
@@ -111,7 +106,7 @@ function HomeLayout() {
 
 function DashboardOverview() {
   const { session } = Route.useRouteContext()
-  const { initialMetrics, initialTunnels, proxyUrl, sshHost, sshPort } = Route.useLoaderData()
+  const { initialMetrics, initialTunnels, tunnelUrl, sshHost, sshPort } = Route.useLoaderData()
 
   const [metrics, setMetrics] = useState<DashboardMetrics>(initialMetrics)
   const [tunnels, setTunnels] = useState<ActiveTunnel[]>(initialTunnels)
@@ -319,7 +314,7 @@ function DashboardOverview() {
                     <TableCell>
                       <a
                         className="font-mono text-primary text-sm hover:underline"
-                        href={getTunnelUrl(tunnel.subdomain, proxyUrl)}
+                        href={getTunnelUrl(tunnel.subdomain, tunnelUrl)}
                         rel="noopener noreferrer"
                         target="_blank"
                       >
