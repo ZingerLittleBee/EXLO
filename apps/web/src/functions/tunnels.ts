@@ -86,13 +86,11 @@ export const getAllStoredTunnels = createServerFn({ method: 'GET' })
   })
 
 // Server function to get public config (avoids exposing server env to client)
-export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async () => {
-  return {
-    tunnelUrl: env.TUNNEL_URL,
-    sshHost: env.SSH_HOST,
-    sshPort: env.SSH_PORT
-  }
-})
+export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async () => ({
+  tunnelUrl: env.TUNNEL_URL,
+  sshHost: env.SSH_HOST,
+  sshPort: env.SSH_PORT
+}))
 
 // Server function to kick a tunnel
 export const kickTunnel = createServerFn({ method: 'POST' })

@@ -37,7 +37,7 @@ main_menu() {
         "Development" \
         "Build" \
         "Deploy" \
-        "Database" \
+        "DB" \
         "Status" \
         "Cleanup" \
         "Exit")
@@ -46,7 +46,7 @@ main_menu() {
         "Development") dev_menu ;;
         "Build") build_menu ;;
         "Deploy") deploy_menu ;;
-        "Database") db_menu ;;
+        "DB") db_menu ;;
         "Status") status_menu ;;
         "Cleanup") cleanup_menu ;;
         "Exit") exit 0 ;;
@@ -63,7 +63,6 @@ dev_menu() {
         "dev-landing     Start Landing page" \
         "dev-docs        Start Documentation" \
         "dev-all         Start all services" \
-        "init-dev-db     Initialize dev database" \
         "<- Back")
 
     run_command "$CMD"
@@ -98,7 +97,9 @@ deploy_menu() {
 # Database submenu
 db_menu() {
     CMD=$(gum choose \
+        "run-dev-db    Start dev database and push schema" \
         "init-db       Initialize database" \
+        "init-dev-db   Initialize dev database" \
         "db-backup     Backup database" \
         "db-restore    Restore database" \
         "<- Back")

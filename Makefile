@@ -5,7 +5,7 @@ COMPOSE_FILE := docker-compose.simple.yml
 COMPOSE_LOCAL := docker-compose.local.yml
 COMPOSE_PROD := docker-compose.yml
 
-.PHONY: help menu init-db init-dev-db dev-web dev-docs dev-landing dev-tunnel dev-all \
+.PHONY: help menu init-db init-dev-db run-dev-db dev-web dev-docs dev-landing dev-tunnel dev-all \
         build build-web build-tunnel build-images \
         deploy-simple deploy-local deploy-prod \
         up up-build down logs logs-web logs-tunnel ps web tunnel \
@@ -43,6 +43,13 @@ init-dev-db: ## Start dev database and push schema
 	@echo "Pushing database schema..."
 	bun db:push
 	@echo "Dev database initialized!"
+
+run-dev-db: ## Start dev database and push schema
+	@echo "Starting dev PostgreSQL..."
+	docker compose -f packages/db/docker-compose.yml up -d
+	@echo "Pushing database schema..."
+	bun db:push
+	@echo "Dev database started!"
 
 dev-web: ## Run web in dev mode
 	bun dev:web
