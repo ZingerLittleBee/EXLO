@@ -1,5 +1,5 @@
 import { db, eq } from '@exlo/db'
-import { activationCodes } from '@exlo/db/schema'
+import { activationCodes } from '@exlo/db/schema/index'
 import { createFileRoute } from '@tanstack/react-router'
 import { env } from '@/lib/env'
 
