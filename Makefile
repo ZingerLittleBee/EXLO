@@ -5,10 +5,10 @@ COMPOSE_FILE := docker-compose.simple.yml
 COMPOSE_LOCAL := docker-compose.local.yml
 COMPOSE_PROD := docker-compose.yml
 
-.PHONY: help menu init-db init-dev-db dev-web dev-docs dev-landing dev-tunnl dev-all \
-        build build-web build-tunnl build-images \
+.PHONY: help menu init-db init-dev-db dev-web dev-docs dev-landing dev-tunnel dev-all \
+        build build-web build-tunnel build-images \
         deploy-simple deploy-local deploy-prod \
-        up up-build down logs logs-web logs-tunnl ps web tunnl \
+        up up-build down logs logs-web logs-tunnel ps web tunnel \
         db-backup db-restore setup-env validate-env health status \
         clean clean-images clean-volumes
 
@@ -21,13 +21,13 @@ help: ## Show this help
 	@echo ""
 	@echo "Typical workflow:"
 	@echo "  1. make init-db   # First time: start database and run migrations"
-	@echo "  2. make up-build  # Start web and tunnl services with rebuild"
+	@echo "  2. make up-build  # Start web and tunnel services with rebuild"
 	@echo "  3. make up        # Restart services without rebuild"
 	@echo ""
 	@echo "Tips:"
 	@echo "  make menu              # Interactive menu for all commands"
 	@echo "  make up-build web      # Build and start only web service"
-	@echo "  make up-build tunnl    # Build and start only tunnl service"
+	@echo "  make up-build tunnel    # Build and start only tunnel service"
 
 menu: ## Launch interactive command menu (requires gum)
 	@./scripts/menu.sh
@@ -50,8 +50,8 @@ dev-web: ## Run web in dev mode
 dev-docs: ## Run docs in dev mode
 	bun dev:docs
 
-dev-tunnl: ## Run tunnl in dev mode
-	cd apps/tunnl && RUST_LOG=info cargo run
+dev-tunnel: ## Run tunnel in dev mode
+	cd apps/tunnel && RUST_LOG=info cargo run
 
 dev-landing: ## Run landing page in dev mode
 	bun dev:landing
@@ -66,7 +66,7 @@ dev-all: ## Run all dev services in parallel
 	@echo "Starting all development services..."
 	@trap 'kill 0' EXIT; \
 	bun dev:web & \
-	(cd apps/tunnl && RUST_LOG=info cargo run) & \
+	(cd apps/tunnel && RUST_LOG=info cargo run) & \
 	python3 -m http.server 8000 & \
 	bun dev:landing & \
 	bun dev:docs & \
@@ -84,9 +84,9 @@ build-web: ## Build web application only
 	cd apps/web && bun build
 	@echo "Web build complete!"
 
-build-tunnl: ## Build tunnl (Rust) only
-	@echo "Building tunnl..."
-	cd apps/tunnl && cargo build --release
+build-tunnel: ## Build tunnel (Rust) only
+	@echo "Building tunnel..."
+	cd apps/tunnel && cargo build --release
 	@echo "Tunnl build complete!"
 
 build-images: ## Build all Docker images
@@ -113,18 +113,18 @@ deploy-prod: ## Deploy using production config (HTTPS + Let's Encrypt)
 
 # ==================== Services ====================
 
-up: ## Start web and tunnl services (without rebuild)
-	@echo "Starting web and tunnl services..."
-	docker compose -f $(COMPOSE_FILE) up -d web tunnl
+up: ## Start web and tunnel services (without rebuild)
+	@echo "Starting web and tunnel services..."
+	docker compose -f $(COMPOSE_FILE) up -d web tunnel
 	@echo "Services started!"
 
-up-build: ## Start services with rebuild (usage: make up-build [web] [tunnl])
-	$(eval SERVICES := $(if $(filter web tunnl,$(MAKECMDGOALS)),$(filter web tunnl,$(MAKECMDGOALS)),web tunnl))
+up-build: ## Start services with rebuild (usage: make up-build [web] [tunnel])
+	$(eval SERVICES := $(if $(filter web tunnel,$(MAKECMDGOALS)),$(filter web tunnel,$(MAKECMDGOALS)),web tunnel))
 	@echo "Building and starting services: $(SERVICES)..."
 	docker compose -f $(COMPOSE_FILE) up -d --build $(SERVICES)
 	@echo "Services started!"
 
-web tunnl:
+web tunnel:
 	@:
 
 down: ## Stop all services
@@ -138,8 +138,8 @@ logs: ## Show logs for all services
 logs-web: ## Show logs for web service
 	docker compose -f $(COMPOSE_FILE) logs -f web
 
-logs-tunnl: ## Show logs for tunnl service
-	docker compose -f $(COMPOSE_FILE) logs -f tunnl
+logs-tunnel: ## Show logs for tunnel service
+	docker compose -f $(COMPOSE_FILE) logs -f tunnel
 
 ps: ## Show running containers
 	docker compose -f $(COMPOSE_FILE) ps

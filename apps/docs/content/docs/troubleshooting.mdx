@@ -20,24 +20,24 @@ icon: BadgeAlert
 **Solution**:
 ```bash
 # Remove old Host Key
-ssh-keygen -R "[tunnl.example.com]:2222"
+ssh-keygen -R "[tunnel.example.com]:2222"
 
 # Reconnect
-ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
+ssh -R 8000:localhost:8000 -p 2222 user@tunnel.example.com
 ```
 
 ### Connection Timeout
 
 **Symptom**:
 ```
-ssh: connect to host tunnl.example.com port 2222: Connection timed out
+ssh: connect to host tunnel.example.com port 2222: Connection timed out
 ```
 
 **Troubleshooting Steps**:
 
 1. Check if port is open:
    ```bash
-   nc -zv tunnl.example.com 2222
+   nc -zv tunnel.example.com 2222
    ```
 
 2. Check firewall rules:
@@ -48,7 +48,7 @@ ssh: connect to host tunnl.example.com port 2222: Connection timed out
 3. Check if service is running:
    ```bash
    docker compose ps
-   docker compose logs tunnl
+   docker compose logs tunnel
    ```
 
 ### Permission Denied
@@ -102,12 +102,12 @@ ssh -R 8000:localhost:8000 -p 2222 user@your.domain
 # Disconnect and reconnect
 # Press Enter then type ~.
 # Reconnect to get a new verification code
-ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
+ssh -R 8000:localhost:8000 -p 2222 user@tunnel.example.com
 ```
 
 ### Cannot Access Authentication Page
 
-**Symptom**: Browser cannot open `https://tunnl.example.com/activate`.
+**Symptom**: Browser cannot open `https://tunnel.example.com/activate`.
 
 **Troubleshooting Steps**:
 
@@ -120,7 +120,7 @@ ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
    ```bash
    # Nginx
    nginx -t
-   
+
    # Caddy
    caddy validate
    ```
@@ -133,7 +133,7 @@ ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
 
 **Symptom**:
 ```
-curl: (6) Could not resolve host: abc123.tunnl.example.com
+curl: (6) Could not resolve host: abc123.tunnel.example.com
 ```
 
 **Cause**: DNS wildcard record not configured.
@@ -141,7 +141,7 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
 **Solution**:
 ```
 # Add DNS record
-*.tunnl.example.com  A  <server IP>
+*.tunnel.example.com  A  <server IP>
 ```
 
 ### 502 Bad Gateway
@@ -160,12 +160,12 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
    ```bash
    # Check if SSH connection is alive
    # Reconnect
-   ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
+   ssh -R 8000:localhost:8000 -p 2222 user@tunnel.example.com
    ```
 
 3. **HTTP Proxy service error**
    ```bash
-   docker compose logs tunnl | grep -i error
+   docker compose logs tunnel | grep -i error
    ```
 
 ---
@@ -260,11 +260,11 @@ In SSH reverse tunnel mode, `Ctrl+C` should terminate the connection.
 docker compose logs -f
 
 # View SSH service logs only
-docker compose logs -f tunnl
+docker compose logs -f tunnel
 
 # View Web service logs
 docker compose logs -f web
 
 # Filter error logs
-docker compose logs tunnl 2>&1 | grep -i error
+docker compose logs tunnel 2>&1 | grep -i error
 ```

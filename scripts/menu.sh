@@ -57,7 +57,7 @@ main_menu() {
 dev_menu() {
     CMD=$(gum choose \
         "dev-web         Start Web dashboard" \
-        "dev-tunnl       Start Tunnl (Rust)" \
+        "dev-tunnel       Start Tunnl (Rust)" \
         "dev-test-server Start local test HTTP server" \
         "dev-ssh-client  Test SSH reverse tunnel" \
         "dev-landing     Start Landing page" \
@@ -74,7 +74,7 @@ build_menu() {
     CMD=$(gum choose \
         "build         Build all applications" \
         "build-web     Build Web only" \
-        "build-tunnl   Build Tunnl only" \
+        "build-tunnel   Build Tunnl only" \
         "build-images  Build Docker images" \
         "<- Back")
 
@@ -114,7 +114,7 @@ status_menu() {
         "ps            Show containers" \
         "logs          View all logs" \
         "logs-web      View Web logs" \
-        "logs-tunnl    View Tunnl logs" \
+        "logs-tunnel    View Tunnl logs" \
         "<- Back")
 
     run_command "$CMD"

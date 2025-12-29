@@ -19,7 +19,7 @@ export const getDashboardMetrics = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async (): Promise<DashboardMetrics> => {
     try {
-      const tunnelResponse = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
+      const tunnelResponse = await fetch(`${env.TUNNEL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })
@@ -59,7 +59,7 @@ export const getRecentTunnels = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => {
     try {
-      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
+      const response = await fetch(`${env.TUNNEL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       })

@@ -20,24 +20,24 @@ icon: BadgeAlert
 **解决方案**：
 ```bash
 # 移除旧的 Host Key
-ssh-keygen -R "[tunnl.example.com]:2222"
+ssh-keygen -R "[tunnel.example.com]:2222"
 
 # 重新连接
-ssh -N -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
+ssh -N -R 8000:localhost:8000 -p 2222 user@tunnel.example.com
 ```
 
 ### 连接超时
 
 **现象**：
 ```
-ssh: connect to host tunnl.example.com port 2222: Connection timed out
+ssh: connect to host tunnel.example.com port 2222: Connection timed out
 ```
 
 **排查步骤**：
 
 1. 检查端口是否开放：
    ```bash
-   nc -zv tunnl.example.com 2222
+   nc -zv tunnel.example.com 2222
    ```
 
 2. 检查防火墙规则：
@@ -48,7 +48,7 @@ ssh: connect to host tunnl.example.com port 2222: Connection timed out
 3. 检查服务是否运行：
    ```bash
    docker compose ps
-   docker compose logs tunnl
+   docker compose logs tunnel
    ```
 
 ### Permission Denied
@@ -102,12 +102,12 @@ ssh -R 8000:localhost:8000 -p 2222 user@your.domain
 # 断开当前连接，重新建立
 # 按 Enter 然后输入 ~.
 # 重新连接获取新验证码
-ssh -N -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
+ssh -N -R 8000:localhost:8000 -p 2222 user@tunnel.example.com
 ```
 
 ### 无法访问认证页面
 
-**现象**：浏览器无法打开 `https://tunnl.example.com/activate`。
+**现象**：浏览器无法打开 `https://tunnel.example.com/activate`。
 
 **排查步骤**：
 
@@ -120,7 +120,7 @@ ssh -N -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
    ```bash
    # Nginx
    nginx -t
-   
+
    # Caddy
    caddy validate
    ```
@@ -133,7 +133,7 @@ ssh -N -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
 
 **现象**：
 ```
-curl: (6) Could not resolve host: abc123.tunnl.example.com
+curl: (6) Could not resolve host: abc123.tunnel.example.com
 ```
 
 **原因**：DNS 未配置通配符记录。
@@ -141,7 +141,7 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
 **解决方案**：
 ```
 # 添加 DNS 记录
-*.tunnl.example.com  A  <服务器 IP>
+*.tunnel.example.com  A  <服务器 IP>
 ```
 
 ### 502 Bad Gateway
@@ -160,12 +160,12 @@ curl: (6) Could not resolve host: abc123.tunnl.example.com
    ```bash
    # 检查 SSH 连接是否存活
    # 重新建立连接
-   ssh -R 8000:localhost:8000 -p 2222 user@tunnl.example.com
+   ssh -R 8000:localhost:8000 -p 2222 user@tunnel.example.com
    ```
 
 3. **HTTP Proxy 服务异常**
    ```bash
-   docker compose logs tunnl | grep -i error
+   docker compose logs tunnel | grep -i error
    ```
 
 ---
@@ -260,12 +260,12 @@ SSH 反向隧道模式下，`Ctrl+C` 通常可以终止连接。
 docker compose logs -f
 
 # 仅查看 SSH 服务日志
-docker compose logs -f tunnl
+docker compose logs -f tunnel
 
 # 查看 Web 服务日志
 docker compose logs -f web
 
 # 过滤错误日志
-docker compose logs tunnl 2>&1 | grep -i error
+docker compose logs tunnel 2>&1 | grep -i error
 ```
 

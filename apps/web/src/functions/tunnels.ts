@@ -35,7 +35,7 @@ export const getTunnels = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => {
     try {
-      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
+      const response = await fetch(`${env.TUNNEL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -106,7 +106,7 @@ export const kickTunnel = createServerFn({ method: 'POST' })
     }
 
     try {
-      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
+      const response = await fetch(`${env.TUNNEL_MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'

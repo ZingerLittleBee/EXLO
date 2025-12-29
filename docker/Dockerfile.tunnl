@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache musl-dev pkgconf
 
 # Copy Cargo files
-COPY apps/tunnl/Cargo.toml apps/tunnl/Cargo.lock ./
+COPY apps/tunnel/Cargo.toml apps/tunnel/Cargo.lock ./
 
 # Create dummy src to cache dependencies
 RUN mkdir src && \
@@ -17,7 +17,7 @@ RUN mkdir src && \
     rm -rf src
 
 # Copy actual source code
-COPY apps/tunnl/src ./src
+COPY apps/tunnel/src ./src
 
 # Build the application (touch main.rs to trigger rebuild)
 RUN touch src/main.rs && cargo build --release
@@ -30,13 +30,13 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 
 # Copy the built binary
-COPY --from=builder /app/target/release/tunnl /app/tunnl
+COPY --from=builder /app/target/release/tunnel /app/tunnel
 
 # Create non-root user
-RUN adduser -D -s /bin/false tunnl && \
-    chown -R tunnl:tunnl /app
+RUN adduser -D -s /bin/false tunnel && \
+    chown -R tunnel:tunnel /app
 
-USER tunnl
+USER tunnel
 
 # Expose ports:
 # 2222 - SSH Server
@@ -44,4 +44,4 @@ USER tunnl
 # 9090 - Management API (internal only)
 EXPOSE 2222 8080 9090
 
-ENTRYPOINT ["/app/tunnl"]
+ENTRYPOINT ["/app/tunnel"]

@@ -65,7 +65,7 @@ bun fix
 │   ├── web/        # TanStack Start Web application
 │   ├── docs/       # Documentation site
 │   ├── landing/    # Landing page
-│   └── tunnl/      # Rust SSH tunnel service
+│   └── tunnel/      # Rust SSH tunnel service
 ├── packages/       # Shared packages
 │   └── db/         # Database schema and configuration
 └── ...
@@ -95,7 +95,7 @@ We recommend following the [Conventional Commits](https://www.conventionalcommit
 
 ```
 feat(web): add tunnel status dashboard
-fix(tunnl): resolve connection timeout issue
+fix(tunnel): resolve connection timeout issue
 docs: update README with new setup instructions
 ```
 

@@ -57,7 +57,7 @@ services:
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      TUNNL_MANAGEMENT_API_URL: http://tunnl:9090
+      TUNNEL_MANAGEMENT_API_URL: http://tunnel:9090
       NODE_ENV: production
     ports:
       - "${WEB_PORT:-3000}:3000"
@@ -68,11 +68,11 @@ services:
     networks:
       - exlo-network
 
-  tunnl:
+  tunnel:
     build:
       context: .
-      dockerfile: docker/Dockerfile.tunnl
-    container_name: exlo-tunnl
+      dockerfile: docker/Dockerfile.tunnel
+    container_name: exlo-tunnel
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       API_BASE_URL: ${API_BASE_URL:-http://web:3000}
@@ -100,7 +100,7 @@ networks:
 
 ## 环境变量
 
-### Data Plane (tunnl)
+### Data Plane (tunnel)
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
@@ -108,7 +108,7 @@ networks:
 | `API_BASE_URL` | Web 服务 URL，用于 Device Flow | `http://web:3000` |
 | `INTERNAL_API_SECRET` | 内部 API 共享密钥 | `your-long-random-secret` |
 | `RUST_LOG` | Rust 日志级别 | `info` |
-| `TUNNL_SKIP_AUTH` | 跳过 Device Flow（仅开发） | `true` |
+| `TUNNEL_SKIP_AUTH` | 跳过 Device Flow（仅开发） | `true` |
 
 ### Control Plane (web)
 
@@ -116,9 +116,9 @@ networks:
 |------|------|------|
 | `DATABASE_URL` | PostgreSQL 连接字符串 | `postgres://user:pass@host:5432/db` |
 | `BETTER_AUTH_SECRET` | Better Auth 密钥（至少 32 位） | `your-auth-secret` |
-| `BETTER_AUTH_URL` | Better Auth 基础 URL | `https://tunnl.example.com` |
+| `BETTER_AUTH_URL` | Better Auth 基础 URL | `https://tunnel.example.com` |
 | `INTERNAL_API_SECRET` | 内部 API 共享密钥 | `your-long-random-secret` |
-| `TUNNL_MANAGEMENT_API_URL` | Data Plane Management API | `http://tunnl:9090` |
+| `TUNNEL_MANAGEMENT_API_URL` | Data Plane Management API | `http://tunnel:9090` |
 
 > [!NOTE]
 > Data Plane 内部监听端口为 `2222/8080/9090`。如需调整对外端口，请通过 Docker 端口映射
@@ -129,15 +129,15 @@ networks:
 ### Nginx
 
 ```nginx
-# /etc/nginx/sites-available/tunnl
+# /etc/nginx/sites-available/tunnel
 
 # Web Dashboard
 server {
     listen 443 ssl http2;
-    server_name tunnl.example.com;
+    server_name tunnel.example.com;
 
-    ssl_certificate /etc/letsencrypt/live/tunnl.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/tunnl.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/tunnel.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tunnel.example.com/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:3000;
@@ -149,10 +149,10 @@ server {
 # Tunnel HTTP Proxy (通配符域名)
 server {
     listen 443 ssl http2;
-    server_name *.tunnl.example.com;
+    server_name *.tunnel.example.com;
 
-    ssl_certificate /etc/letsencrypt/live/tunnl.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/tunnl.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/tunnel.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/tunnel.example.com/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -197,22 +197,22 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt:/letsencrypt
 
-  tunnl:
+  tunnel:
     image: ghcr.io/ZingerLittleBee/EXLO:latest
     ports:
       - "2222:2222"   # SSH Server (直接暴露)
     labels:
       - "traefik.enable=true"
       # Tunnel HTTP Proxy (通配符域名)
-      - "traefik.http.routers.tunnl-proxy.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tunnl.example.com`)"
-      - "traefik.http.routers.tunnl-proxy.entrypoints=websecure"
-      - "traefik.http.routers.tunnl-proxy.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.tunnl-proxy.tls.domains[0].main=tunnl.example.com"
-      - "traefik.http.routers.tunnl-proxy.tls.domains[0].sans=*.tunnl.example.com"
-      - "traefik.http.routers.tunnl-proxy.service=tunnl-proxy"
-      - "traefik.http.services.tunnl-proxy.loadbalancer.server.port=8080"
+      - "traefik.http.routers.tunnel-proxy.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.tunnel.example.com`)"
+      - "traefik.http.routers.tunnel-proxy.entrypoints=websecure"
+      - "traefik.http.routers.tunnel-proxy.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tunnel-proxy.tls.domains[0].main=tunnel.example.com"
+      - "traefik.http.routers.tunnel-proxy.tls.domains[0].sans=*.tunnel.example.com"
+      - "traefik.http.routers.tunnel-proxy.service=tunnel-proxy"
+      - "traefik.http.services.tunnel-proxy.loadbalancer.server.port=8080"
     environment:
-      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
+      - DATABASE_URL=postgres://tunnel:secret@db:5432/tunnel
       - API_BASE_URL=http://web:3000
       - INTERNAL_API_SECRET=your-long-random-secret
 
@@ -221,24 +221,24 @@ services:
     labels:
       - "traefik.enable=true"
       # Web Dashboard
-      - "traefik.http.routers.tunnl-web.rule=Host(`tunnl.example.com`)"
-      - "traefik.http.routers.tunnl-web.entrypoints=websecure"
-      - "traefik.http.routers.tunnl-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.tunnl-web.service=tunnl-web"
-      - "traefik.http.services.tunnl-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.tunnel-web.rule=Host(`tunnel.example.com`)"
+      - "traefik.http.routers.tunnel-web.entrypoints=websecure"
+      - "traefik.http.routers.tunnel-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tunnel-web.service=tunnel-web"
+      - "traefik.http.services.tunnel-web.loadbalancer.server.port=3000"
     environment:
-      - DATABASE_URL=postgres://tunnl:secret@db:5432/tunnl
+      - DATABASE_URL=postgres://tunnel:secret@db:5432/tunnel
       - INTERNAL_API_SECRET=your-long-random-secret
-      - TUNNL_MANAGEMENT_API_URL=http://tunnl:9090
+      - TUNNEL_MANAGEMENT_API_URL=http://tunnel:9090
 
   db:
     image: postgres:16-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=tunnl
+      - POSTGRES_USER=tunnel
       - POSTGRES_PASSWORD=secret
-      - POSTGRES_DB=tunnl
+      - POSTGRES_DB=tunnel
 
 volumes:
   postgres_data:

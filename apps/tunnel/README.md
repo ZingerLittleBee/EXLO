@@ -1,4 +1,4 @@
-# tunnl
+# tunnel
 
 A high-performance SSH reverse tunnel server written in Rust.
 
@@ -15,7 +15,7 @@ A high-performance SSH reverse tunnel server written in Rust.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           tunnl Server                               │
+│                           tunnel Server                               │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐     │
 │  │  HTTP Proxy  │   │  SSH Server  │   │  Management API      │     │
 │  │  :8080       │   │  :2222       │   │  :9090 (internal)    │     │

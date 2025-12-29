@@ -36,6 +36,6 @@
   "biome.enabled": true,
   "biome.lsp.bin": "./node_modules/@biomejs/biome/bin/biome",
   "rust-analyzer.linkedProjects": [
-    "apps/tunnl/Cargo.toml"
+    "apps/tunnel/Cargo.toml"
   ]
 }

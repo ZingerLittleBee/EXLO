@@ -91,11 +91,11 @@ services:
     networks:
       - exlo-network
 
-  tunnl:
+  tunnel:
     build:
       context: .
-      dockerfile: docker/Dockerfile.tunnl
-    container_name: exlo-tunnl
+      dockerfile: docker/Dockerfile.tunnel
+    container_name: exlo-tunnel
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       RUST_LOG: ${RUST_LOG:-info}
@@ -112,12 +112,12 @@ services:
     labels:
       - "traefik.enable=true"
       # Traefik v3 syntax for wildcard subdomain matching
-      - "traefik.http.routers.tunnl.rule=HostRegexp(`^.+\\.${TUNNEL_URL}$$`)"
-      - "traefik.http.routers.tunnl.entrypoints=websecure"
-      - "traefik.http.routers.tunnl.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.tunnl.tls.domains[0].main=${TUNNEL_URL}"
-      - "traefik.http.routers.tunnl.tls.domains[0].sans=*.${TUNNEL_URL}"
-      - "traefik.http.services.tunnl.loadbalancer.server.port=8080"
+      - "traefik.http.routers.tunnel.rule=HostRegexp(`^.+\\.${TUNNEL_URL}$$`)"
+      - "traefik.http.routers.tunnel.entrypoints=websecure"
+      - "traefik.http.routers.tunnel.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.tunnel.tls.domains[0].main=${TUNNEL_URL}"
+      - "traefik.http.routers.tunnel.tls.domains[0].sans=*.${TUNNEL_URL}"
+      - "traefik.http.services.tunnel.loadbalancer.server.port=8080"
     depends_on:
       migrate:
         condition: service_completed_successfully

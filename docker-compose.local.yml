@@ -50,7 +50,7 @@ services:
       AUTH_SECRET: ${AUTH_SECRET}
       HOMEPAGE_URL: http://localhost:3000
       INTERNAL_API_SECRET: ${INTERNAL_API_SECRET}
-      TUNNL_MANAGEMENT_API_URL: ${TUNNL_MANAGEMENT_API_URL}
+      TUNNEL_MANAGEMENT_API_URL: ${TUNNEL_MANAGEMENT_API_URL}
       SSH_HOST: ${SSH_HOST}
       SSH_PORT: ${SSH_PORT:-2222}
       TUNNEL_URL: ${TUNNEL_URL}
@@ -63,11 +63,11 @@ services:
     networks:
       - exlo-network
 
-  tunnl:
+  tunnel:
     build:
       context: .
-      dockerfile: docker/Dockerfile.tunnl
-    container_name: exlo-tunnl
+      dockerfile: docker/Dockerfile.tunnel
+    container_name: exlo-tunnel
     environment:
       <<: *db
       API_BASE_URL: http://web:3000

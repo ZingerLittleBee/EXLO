@@ -7,7 +7,7 @@ export const env = createEnv({
     AUTH_SECRET: z.string().min(32),
     HOMEPAGE_URL: z.url(),
     INTERNAL_API_SECRET: z.string(),
-    TUNNL_MANAGEMENT_API_URL: z.url(),
+    TUNNEL_MANAGEMENT_API_URL: z.url(),
     SSH_HOST: z.string(),
     SSH_PORT: z.string(),
     TUNNEL_URL: z.string()

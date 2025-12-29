@@ -11,7 +11,7 @@ A self-hosted SSH reverse tunnel service. Uses a **Sidecar architecture** with t
 │                     Sidecar Pattern                          │
 ├──────────────────────────┬──────────────────────────────────┤
 │   Data Plane (Rust)      │    Control Plane (Node.js)       │
-│   apps/tunnl             │    apps/web                      │
+│   apps/tunnel             │    apps/web                      │
 ├──────────────────────────┼──────────────────────────────────┤
 │ • SSH Server (:2222)     │ • Web Dashboard (:3000)          │
 │ • HTTP Proxy (:8080)     │ • Better Auth (SSR)              │
@@ -30,7 +30,7 @@ A self-hosted SSH reverse tunnel service. Uses a **Sidecar architecture** with t
 ```
 brisbane/
 ├── apps/
-│   ├── tunnl/          # Rust SSH tunnel server
+│   ├── tunnel/          # Rust SSH tunnel server
 │   │   └── src/
 │   │       ├── main.rs
 │   │       ├── lib.rs
@@ -96,7 +96,7 @@ bun run db:push
 bun run dev:web
 
 # Run SSH tunnel server (dev)
-cd apps/tunnl && RUST_LOG=info DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo cargo run
+cd apps/tunnel && RUST_LOG=info DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo cargo run
 
 # Docker deployment
 docker compose up -d --build
