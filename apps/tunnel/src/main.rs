@@ -18,7 +18,7 @@ use std::sync::Arc;
 use log::info;
 use russh::server::Server;
 
-use tunnl::{
+use tunnel::{
     init_config, load_or_generate_server_key, run_http_proxy, run_management_api, AppState,
     DeviceFlowClient, DeviceFlowConfig, TunnelServer,
 };

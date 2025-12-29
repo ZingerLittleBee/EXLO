@@ -71,7 +71,7 @@ sequenceDiagram
     SSH->>Registry: Register subdomain → Client
     SSH-->>Client: Assign abc123.your.domain
 
-    User->>Proxy: GET abc123.tunnl.example.com
+    User->>Proxy: GET abc123.tunnel.example.com
     Proxy->>Registry: Lookup abc123
     Registry-->>Proxy: Return Client connection
     Proxy->>Client: Forward request (via SSH channel)

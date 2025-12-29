@@ -71,7 +71,7 @@ sequenceDiagram
     SSH->>Registry: 注册 subdomain → Client
     SSH-->>Client: 分配 abc123.your.domain
 
-    User->>Proxy: GET abc123.tunnl.example.com
+    User->>Proxy: GET abc123.tunnel.example.com
     Proxy->>Registry: 查找 abc123
     Registry-->>Proxy: 返回 Client 连接
     Proxy->>Client: 转发请求（via SSH channel）

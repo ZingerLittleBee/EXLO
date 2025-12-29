@@ -28,8 +28,8 @@ jobs:
           - name: web
             dockerfile: docker/Dockerfile.web
             context: .
-          - name: tunnl
-            dockerfile: docker/Dockerfile.tunnl
+          - name: tunnel
+            dockerfile: docker/Dockerfile.tunnel
             context: .
           - name: migrate
             dockerfile: docker/Dockerfile.migrate

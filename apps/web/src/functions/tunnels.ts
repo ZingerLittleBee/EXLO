@@ -35,7 +35,7 @@ export const getTunnels = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .handler(async () => {
     try {
-      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels`, {
+      const response = await fetch(`${env.TUNNEL_MANAGEMENT_API_URL}/tunnels`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -86,13 +86,11 @@ export const getAllStoredTunnels = createServerFn({ method: 'GET' })
   })
 
 // Server function to get public config (avoids exposing server env to client)
-export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async () => {
-  return {
-    tunnelUrl: env.TUNNEL_URL,
-    sshHost: env.SSH_HOST,
-    sshPort: env.SSH_PORT
-  }
-})
+export const getPublicConfig = createServerFn({ method: 'GET' }).handler(async () => ({
+  tunnelUrl: env.TUNNEL_URL,
+  sshHost: env.SSH_HOST,
+  sshPort: env.SSH_PORT
+}))
 
 // Server function to kick a tunnel
 export const kickTunnel = createServerFn({ method: 'POST' })
@@ -106,7 +104,7 @@ export const kickTunnel = createServerFn({ method: 'POST' })
     }
 
     try {
-      const response = await fetch(`${env.TUNNL_MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
+      const response = await fetch(`${env.TUNNEL_MANAGEMENT_API_URL}/tunnels/${encodeURIComponent(subdomain)}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'

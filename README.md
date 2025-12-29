@@ -77,7 +77,7 @@ bun run dev:web
 6. Run the SSH reverse tunnel server:
 
 ```bash
-cd apps/tunnl
+cd apps/tunnel
 RUST_LOG=info DATABASE_URL=postgresql://postgres:password@localhost:5432/exlo cargo run
 ```
 

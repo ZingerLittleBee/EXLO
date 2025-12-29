@@ -37,7 +37,7 @@ main_menu() {
         "Development" \
         "Build" \
         "Deploy" \
-        "Database" \
+        "DB" \
         "Status" \
         "Cleanup" \
         "Exit")
@@ -46,7 +46,7 @@ main_menu() {
         "Development") dev_menu ;;
         "Build") build_menu ;;
         "Deploy") deploy_menu ;;
-        "Database") db_menu ;;
+        "DB") db_menu ;;
         "Status") status_menu ;;
         "Cleanup") cleanup_menu ;;
         "Exit") exit 0 ;;
@@ -57,13 +57,12 @@ main_menu() {
 dev_menu() {
     CMD=$(gum choose \
         "dev-web         Start Web dashboard" \
-        "dev-tunnl       Start Tunnl (Rust)" \
+        "dev-tunnel       Start Tunnl (Rust)" \
         "dev-test-server Start local test HTTP server" \
         "dev-ssh-client  Test SSH reverse tunnel" \
         "dev-landing     Start Landing page" \
         "dev-docs        Start Documentation" \
         "dev-all         Start all services" \
-        "init-dev-db     Initialize dev database" \
         "<- Back")
 
     run_command "$CMD"
@@ -74,7 +73,7 @@ build_menu() {
     CMD=$(gum choose \
         "build         Build all applications" \
         "build-web     Build Web only" \
-        "build-tunnl   Build Tunnl only" \
+        "build-tunnel   Build Tunnl only" \
         "build-images  Build Docker images" \
         "<- Back")
 
@@ -98,7 +97,9 @@ deploy_menu() {
 # Database submenu
 db_menu() {
     CMD=$(gum choose \
+        "run-dev-db    Start dev database and push schema" \
         "init-db       Initialize database" \
+        "init-dev-db   Initialize dev database" \
         "db-backup     Backup database" \
         "db-restore    Restore database" \
         "<- Back")
@@ -114,7 +115,7 @@ status_menu() {
         "ps            Show containers" \
         "logs          View all logs" \
         "logs-web      View Web logs" \
-        "logs-tunnl    View Tunnl logs" \
+        "logs-tunnel    View Tunnl logs" \
         "<- Back")
 
     run_command "$CMD"

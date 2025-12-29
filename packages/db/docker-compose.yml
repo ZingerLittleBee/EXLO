@@ -1,9 +1,9 @@
-name: EXLO
+name: EXLO-dev
 
 services:
   postgres:
     image: postgres
-    container_name: exlo-postgres
+    container_name: exlo-postgres-for-dev
     environment:
       POSTGRES_DB: exlo
       POSTGRES_USER: postgres
@@ -11,7 +11,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - exlo_postgres_data:/var/lib/postgresql
+      - exlo_postgres_dev_volume:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -20,4 +20,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  exlo_postgres_data:
+  exlo_postgres_dev_volume:

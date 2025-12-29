@@ -8,7 +8,7 @@ build
 *.tsbuildinfo
 
 # Rust build artifacts
-apps/tunnl/target
+apps/tunnel/target
 
 # Environment variables
 .env

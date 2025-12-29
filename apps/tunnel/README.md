@@ -1,4 +1,4 @@
-# tunnl
+# tunnel
 
 A high-performance SSH reverse tunnel server written in Rust.
 
@@ -15,7 +15,7 @@ A high-performance SSH reverse tunnel server written in Rust.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           tunnl Server                               │
+│                           tunnel Server                               │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────────────┐     │
 │  │  HTTP Proxy  │   │  SSH Server  │   │  Management API      │     │
 │  │  :8080       │   │  :2222       │   │  :9090 (internal)    │     │
@@ -110,3 +110,23 @@ curl http://localhost:9090/tunnels
 # Delete a tunnel
 curl -X DELETE http://localhost:9090/tunnels/{subdomain}
 ```
+
+## Data Flow
+
+```
+1. SSH Client connects       → ssh/server.rs (TunnelServer)
+2. Device Flow auth          → ssh/verification.rs → Web API (/api/device-code)
+3. Auth success              → state.rs registers tunnel (tunnels HashMap)
+4. HTTP request arrives      → proxy.rs parses Host header → lookup tunnel → forward
+5. SSH channel opens         → bidirectional TCP copy between client and tunnel
+```
+
+## Key Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| **Virtual Bind** | No physical port binding per tunnel; uses subdomain routing to scale to thousands |
+| **Device Flow Auth** | Browser-based OAuth flow instead of SSH keys for better UX and security |
+| **Reconnection Window** | 30-minute grace period preserves subdomain on network interruptions |
+| **Peek-based Routing** | Reads Host header without consuming bytes, enabling transparent TCP passthrough |
+| **Sidecar Pattern** | Rust handles data plane (performance), Node.js handles control plane (auth, UI) |
