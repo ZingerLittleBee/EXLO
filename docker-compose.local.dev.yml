@@ -27,7 +27,9 @@ services:
       - exlo-network
 
   migrate:
-    image: ghcr.io/zingerlittlebee/exlo-migrate:0.1.0
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.migrate
     container_name: exlo-migrate
     environment:
       <<: *db
@@ -39,7 +41,9 @@ services:
     restart: "no"
 
   web:
-    image: ghcr.io/zingerlittlebee/exlo-web:0.1.0
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
     container_name: exlo-web
     environment:
       <<: *db
@@ -60,7 +64,9 @@ services:
       - exlo-network
 
   tunnel:
-    image: ghcr.io/zingerlittlebee/exlo-tunnel:0.1.0
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.tunnel
     container_name: exlo-tunnel
     environment:
       <<: *db
